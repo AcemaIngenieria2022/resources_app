@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import styles from './page.module.css';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
+import { downloadPdf, downloadXlsx } from '@/lib/export';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -237,6 +238,8 @@ export default function DateRangePage() {
             onSearchChange={(event) => setEmployeeSearch(event.target.value)}
             onClearSearch={() => setEmployeeSearch('')}
             onSubmit={handleSubmit}
+            onExportPdf={() => downloadPdf(JSON.stringify(records, null, 2), `date-range-${fromDate}-${toDate}.pdf`)}
+            onExportExcel={() => downloadXlsx(records, `date-range-${fromDate}-${toDate}.xlsx`)}
             title="Resumen por rango de fechas"
           />
         </div>

@@ -15,6 +15,8 @@
         onDeviceChange,
         onClearSearch,
         onSubmit,
+        onExportPdf,
+        onExportExcel,
         title = 'Registros del día',
         useForm = true,
         showDateButton = true,
@@ -106,6 +108,20 @@
                             <div className={styles.deviceFilter} id="deviceFilter">
                                 <button type="button" className={`${styles.deviceOption} ${localDevice === 'interno' ? styles.active : ''}`} data-device="interno" onClick={() => handleDeviceClick('interno')}>Interno</button>
                                 <button type="button" className={`${styles.deviceOption} ${localDevice === 'externo' ? styles.active : ''}`} data-device="externo" onClick={() => handleDeviceClick('externo')}>Externo</button>
+                            </div>
+                        )}
+                        {(onExportPdf || onExportExcel) && (
+                            <div className={styles.exportButtons}>
+                                {onExportPdf && (
+                                    <button type="button" className={styles.exportButton} onClick={onExportPdf}>
+                                        PDF
+                                    </button>
+                                )}
+                                {onExportExcel && (
+                                    <button type="button" className={styles.exportButton} onClick={onExportExcel}>
+                                        Excel
+                                    </button>
+                                )}
                             </div>
                         )}
                         {showSubmitInDateArea && (

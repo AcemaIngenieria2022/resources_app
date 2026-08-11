@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
+import { downloadPdfGroupedByDepartmentImage, downloadXlsx } from '@/lib/export';
 import styles from './page.module.css';
 
 const formatDate = (value) => {
@@ -143,6 +144,8 @@ export default function SummaryPage() {
 
   const sortedSummary = useMemo(() => summary, [summary]);
 
+  const tableRef = useRef(null);
+
   return (
     <div className={styles.pageContainer}>
       <section className={styles.header}>
@@ -152,7 +155,7 @@ export default function SummaryPage() {
             Consulta los primeros y últimos ingresos del día por colaborador, con filtros por fecha, y registros generales.
           </p>
         </div>
-        <div className={styles.meta}>Total de registros del día: {totalCount}</div>
+        <div className={styles.meta}>Total colaboradores: {totalCount}</div>
       </section>
 
       <AttlogFilters
@@ -164,6 +167,8 @@ export default function SummaryPage() {
         onDeviceChange={handleDeviceChange}
         onClearSearch={() => setSearch('')}
         onSubmit={handleSubmit}
+        onExportPdf={() => downloadPdfGroupedByDepartmentImage(tableRef.current, `summary-${date}.pdf`)}
+        onExportExcel={() => downloadXlsx(summary, `summary-${date}.xlsx`)}
       />
 
       {error && <div className={styles.error}>{error}</div>}
@@ -172,7 +177,7 @@ export default function SummaryPage() {
         Mostrando <span>{visibleCount}</span> de <span>{totalCount}</span> colaboradores
       </div>
 
-      <div className={styles.tableWrapper}>
+      <div className={styles.tableWrapper} ref={tableRef}>
         <div className={styles.tableScrollContainer}>
           <table className={styles.table}>
             <thead className={styles.summaryThead}>

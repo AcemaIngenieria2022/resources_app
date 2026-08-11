@@ -12,11 +12,14 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.5.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "mysql2": "^3.23.2",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "sweetalert2": "^11.8.0"
+    "sweetalert2": "^11.8.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^9",

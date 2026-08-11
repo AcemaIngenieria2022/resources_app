@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
+import { downloadPdf, downloadXlsx } from '@/lib/export';
 import styles from './page.module.css';
 
 const getDeviceCellClass = (device) => {
@@ -128,6 +129,8 @@ export default function AllRecordsPage() {
         onDeviceChange={handleDeviceChange}
         onClearSearch={() => setSearch('')}
         onSubmit={handleSubmit}
+        onExportPdf={() => downloadPdf(JSON.stringify(records, null, 2), `attendance-${date}.pdf`)}
+        onExportExcel={() => downloadXlsx(records, `attendance-${date}.xlsx`)}
       />
 
       {error && <div className={styles.error}>{error}</div>}

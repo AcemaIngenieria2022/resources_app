@@ -167,6 +167,28 @@
   color: var(--gray-400, #94a3b8);
 }
 
+.exportButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.exportButton {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.exportButton:hover {
+  background: var(--primary-light);
+}
+
 .clearSearch {
   display: flex;
   align-items: center;

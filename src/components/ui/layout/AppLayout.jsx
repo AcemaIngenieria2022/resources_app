@@ -55,6 +55,13 @@ export default function AppLayout({ children }) {
     logout();
     router.push('/login');
   };
+  // Ensure Hooks are always called in the same order by placing
+  // the effect before any early return.
+  useEffect(() => {
+    // auto-open submenu if current path matches a child
+    const match = navItems.find((item) => item.children && item.children.some((c) => c.href === pathname));
+    if (match) setOpenSubmenu(match.label);
+  }, [pathname]);
 
   if (hideShell) {
     return <>{children}</>;
@@ -62,12 +69,6 @@ export default function AppLayout({ children }) {
 
   const handleMouseEnter = () => setExpanded(true);
   const handleMouseLeave = () => setExpanded(false);
-
-  useEffect(() => {
-    // auto-open submenu if current path matches a child
-    const match = navItems.find((item) => item.children && item.children.some((c) => c.href === pathname));
-    if (match) setOpenSubmenu(match.label);
-  }, [pathname]);
 
   return (
     <div className={`${styles.appShell} ${expanded ? styles.expandedShell : styles.collapsedShell}`}>
