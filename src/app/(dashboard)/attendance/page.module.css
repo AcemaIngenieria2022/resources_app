@@ -1,0 +1,160 @@
+/* styles moved here for grouped pages */
+
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #102a43;
+  --muted: #5f6f81;
+  --primary: #36BBA7;
+  --shadow: 0 20px 45px rgba(14, 34, 77, 0.08);
+}
+
+.pageContainer {
+  width: 100%;
+  padding: 14px 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--text);
+}
+
+.description {
+  margin: 10px 0 0;
+  color: var(--muted);
+  max-width: 720px;
+  line-height: 1.6;
+}
+
+.meta {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tableWrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.table th {
+  background: #f8fafc;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sortHeaderButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sortHeaderButton:hover {
+  color: var(--primary);
+}
+
+.sortIndicator {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.deviceInternal {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.deviceExternal {
+  color: #548dd2;
+  font-weight: 600;
+}
+
+.deviceOther {
+  color: #475569;
+  font-weight: 600;
+}
+
+.table tr:hover td {
+  background: #f1f5f9;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.emptyRow {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.error {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid #f1a8a8;
+  background: #fff1f2;
+  color: #842029;
+  border-radius: 16px;
+}
+
+@media (max-width: 960px) {
+  .tableWrapper {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+}

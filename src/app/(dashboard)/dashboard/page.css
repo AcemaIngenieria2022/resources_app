@@ -1,0 +1,12 @@
+.dashboardMain {
+  padding: 32px;
+}
+
+.dashboardTitle {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.dashboardText {
+  color: #475569;
+}
