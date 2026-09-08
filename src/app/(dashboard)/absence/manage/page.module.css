@@ -238,6 +238,17 @@
   text-align: left;
   vertical-align: middle;
 }
+
+.employeeCell {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.employeeCell strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.25;
+}
 .tableWrap th:nth-child(1) {
   width: 17%;
 }
@@ -297,6 +308,8 @@
 }
 .actions {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 .actions button {

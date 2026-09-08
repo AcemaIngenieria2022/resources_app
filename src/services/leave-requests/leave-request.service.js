@@ -95,13 +95,15 @@ export async function getStatistics({ leaderUserId = null } = {}) {
     const pending = await count('Pending');
     const approved = await count('Approved');
     const rejected = await count('Rejected');
+    const expired = await count('Expired');
 
     return {
       total,
       pending,
       approved,
       rejected,
-      cancelled: total - pending - approved - rejected,
+      expired,
+      cancelled: total - pending - approved - rejected - expired,
     };
   } catch (error) {
     throw new AppError('Error al obtener estadísticas', 500);

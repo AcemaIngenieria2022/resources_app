@@ -57,8 +57,8 @@ export async function POST(request) {
       if (!id) {
         return Response.json(errorResponse('ID es requerido', 400), { status: 400 });
       }
-      if (!['admin', 'hr', 'rrhh'].includes(String(role || '').toLowerCase())) {
-        return Response.json(errorResponse('Solo administradores y RR. HH. pueden eliminar novedades', 403), { status: 403 });
+      if (!['admin'].includes(String(role || '').toLowerCase())) {
+        return Response.json(errorResponse('Solo los administradores pueden eliminar novedades', 403), { status: 403 });
       }
       const result = await leaveRequestService.deleteLeaveRequest(id);
       return Response.json(okResponse(result, { message: 'Novedad eliminada correctamente' }));

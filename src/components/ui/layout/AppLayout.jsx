@@ -68,7 +68,7 @@ export default function AppLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, hydrated } = useAuthContext();
-  const hideShell = pathname === '/login' || pathname === '/registrar-novedad';
+  const hideShell = pathname === '/login' || pathname === '/register-novelty' || pathname === '/registrar-novedad';
   const displayUser = hydrated ? user : null;
   const normalizedRole = String(displayUser?.role || '').toLowerCase().replace(/[.\s]/g, '');
   const isHumanResources = normalizedRole === 'hr' || normalizedRole === 'rrhh';

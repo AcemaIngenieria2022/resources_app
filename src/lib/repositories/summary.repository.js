@@ -15,6 +15,7 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
 
   const employees = await query(`
     SELECT
+      e.id,
       e.employeedID,
       e.personName,
       d.name AS department_name,
@@ -41,6 +42,25 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
     ORDER BY e.personName ASC
   `, employeeParams);
 
+  const approvedLeaveRequests = await query(`
+    SELECT
+      lr.employee_id,
+      lr.reason,
+      lr.permission_type,
+      lr.start_date,
+      lr.end_date,
+      lr.permission_date,
+      lr.start_time,
+      lr.end_time
+    FROM leave_requests lr
+    INNER JOIN state st ON st.id = lr.state_id
+    WHERE st.code = 'completed'
+      AND (
+        (lr.permission_type = 'hours' AND lr.permission_date = ?)
+        OR (lr.permission_type = 'days' AND lr.start_date <= ? AND lr.end_date >= ?)
+      )
+  `, [date, date, date]);
+
   const attlogConditions = ['authDate = ?'];
   const attlogParams = [date];
   if (device && device !== 'all') {
@@ -61,8 +81,24 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
   `, attlogParams);
 
   const attendanceByID = new Map(attendanceRows.map((row) => [String(row.employeedID), row]));
+
+  const approvedLeaveRequestReasons = new Map();
+  for (const request of approvedLeaveRequests) {
+    const employeeId = Number(request.employee_id);
+    const requestReason = request.permission_type === 'hours'
+      ? `${request.reason} (${request.permission_date} ${request.start_time?.slice(0, 5)} - ${request.end_time?.slice(0, 5)})`
+      : `${request.reason} (${request.start_date} a ${request.end_date})`;
+
+    const currentReasons = approvedLeaveRequestReasons.get(employeeId) || [];
+    currentReasons.push(requestReason);
+    approvedLeaveRequestReasons.set(employeeId, currentReasons);
+  }
+
   return employees.map((employee) => ({
     ...employee,
+    absence_reason: [employee.absence_reason, ...(approvedLeaveRequestReasons.get(Number(employee.id)) || [])]
+      .filter(Boolean)
+      .join(', '),
     ...(attendanceByID.get(String(employee.employeedID)) || {
       first_entry: null,
       last_exit: null,

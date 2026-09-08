@@ -125,7 +125,9 @@ export default function ManageAbsencesPage() {
   async function removeRecord(record) {
     if (!window.confirm("¿Eliminar esta novedad?")) return;
     const params = new URLSearchParams(
-      record.series_id ? { series_id: record.series_id } : { id: record.id },
+      record.series_id
+        ? { series_id: record.series_id }
+        : { id: record.id, source: record.source || "manual" },
     );
     const response = await fetch(`/api/admin/absences?${params.toString()}`, {
       method: "DELETE",
@@ -198,75 +200,75 @@ export default function ManageAbsencesPage() {
                 </tr>
               </thead>
               <tbody>
-                {records.map((record) => (
-                  <tr key={record.id}>
-                    <td>
-                      <strong>{record.personName}</strong>
-                      <small>{record.employeedID}</small>
-                    </td>
-                    <td>{record.department_name || "Sin departamento"}</td>
-                    <td>
-                      {record.type === "series"
-                        ? `${record.start_date} a ${record.end_date}`
-                        : `${record.absence_date}${record.type === "hours" ? ` (${record.start_time?.slice(0, 5)} - ${record.end_time?.slice(0, 5)})` : ""}`}
-                    </td>
-                    <td>
-                      <span className={styles.badge}>
+                {records.map((record) => {
+                  return (
+                    <tr key={`${record.source}-${record.id}`}>
+                      <td className={styles.employeeCell}>
+                        <strong>{record.personName}</strong>
+                      </td>
+                      <td>{record.department_name || "Sin departamento"}</td>
+                      <td>
                         {record.type === "series"
-                          ? record.weekday === null
-                            ? "Continua"
-                            : "Día específico"
-                          : record.type === "hours"
-                            ? "Por horas"
-                            : "Día único"}
-                      </span>
-                    </td>
-                    <td>{record.reason}</td>
-                    <td>{record.notes || "Sin notas"}</td>
-                    <td className={styles.actions}>
-                      <button
-                        title="Editar"
-                        onClick={() =>
-                          setEditing({
-                            id: record.id,
-                            employee_id: record.employee_id,
-                            type: record.type,
-                            schedule:
-                              record.weekday === null
-                                ? "continuous"
-                                : "weekday",
-                            weekday: record.weekday ?? "",
-                            start_date:
-                              record.type === "series"
-                                ? record.start_date
-                                : record.absence_date,
-                            end_date:
-                              record.type === "series"
-                                ? record.end_date
-                                : record.absence_date,
-                            start_time: record.start_time?.slice(0, 5) || "",
-                            end_time: record.end_time?.slice(0, 5) || "",
-                            reason: record.reason,
-                            notes: record.notes || "",
-                            series_id: record.series_id,
-                            original_employee_id: record.employee_id,
-                            original_start_date: record.start_date,
-                            original_end_date: record.end_date,
-                            original_reason: record.reason,
-                          })
-                        }
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        title="Eliminar"
-                        onClick={() => removeRecord(record)}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                          ? `${record.start_date} a ${record.end_date}`
+                          : `${record.absence_date}${record.type === "hours" ? ` (${record.start_time?.slice(0, 5)} - ${record.end_time?.slice(0, 5)})` : ""}`}
+                      </td>
+                      <td>
+                        <span className={styles.badge}>
+                          {record.type === "series"
+                            ? record.weekday === null
+                              ? "Continua"
+                              : "Día específico"
+                            : record.type === "hours"
+                              ? "Por horas"
+                              : "Día único"}
+                        </span>
+                      </td>
+                      <td>{record.reason}</td>
+                      <td>{record.notes || "Sin notas"}</td>
+                      <td className={styles.actions}>
+                        <button
+                          title="Editar"
+                          onClick={() =>
+                            setEditing({
+                              id: record.id,
+                              employee_id: record.employee_id,
+                              type: record.type,
+                              schedule:
+                                record.weekday === null ? "continuous" : "weekday",
+                              weekday: record.weekday ?? "",
+                              start_date:
+                                record.type === "series"
+                                  ? record.start_date
+                                  : record.absence_date,
+                              end_date:
+                                record.type === "series"
+                                  ? record.end_date
+                                  : record.absence_date,
+                              start_time: record.start_time?.slice(0, 5) || "",
+                              end_time: record.end_time?.slice(0, 5) || "",
+                              reason: record.reason,
+                              notes: record.notes || "",
+                              series_id: record.series_id,
+                              source: record.source || "manual",
+                              original_employee_id: record.employee_id,
+                              original_start_date: record.start_date,
+                              original_end_date: record.end_date,
+                              original_reason: record.reason,
+                            })
+                          }
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          title="Eliminar"
+                          onClick={() => removeRecord(record)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -26,11 +26,9 @@ const Modal = ({ isOpen, title, onClose, children }) => {
         style={{
           backgroundColor: 'white',
           borderRadius: '16px',
-          padding: '20px 24px',
-          maxWidth: '600px',
+          padding: '16px 18px',
+          maxWidth: '900px',
           width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
           boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
           border: '1px solid #e2e8f0',
         }}
@@ -79,83 +77,150 @@ const DetailModal = ({ isOpen, data, onClose }) => {
 
   return (
     <Modal isOpen={isOpen} title="Detalles de la Novedad" onClose={onClose}>
-      <div className={styles.detailGrid}>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Nombre:</span>
-          <span className={styles.detailValue}>{data.form_full_name}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Email:</span>
-          <span className={styles.detailValue}>{data.form_email}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Identificación:</span>
-          <span className={styles.detailValue}>{data.identification_id}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Cargo:</span>
-          <span className={styles.detailValue}>{data.form_position}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Teléfono:</span>
-          <span className={styles.detailValue}>{data.form_phone}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Supervisor:</span>
-          <span className={styles.detailValue}>{data.leader_name || data.direct_supervisor || 'Sin líder'}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>ID líder:</span>
-          <span className={styles.detailValue}>{data.leader_id || 'Sin líder asignado'}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Tipo de Novedad:</span>
-          <span className={styles.detailValue}>{data.leave_class}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Motivo:</span>
-          <span className={styles.detailValue}>{data.reason || 'Sin motivo registrado'}</span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Estado actual:</span>
-          <span className={`${styles.detailValue} ${styles[`status-${data.status.toLowerCase()}`]}`}>
-            {data.state_name || data.status}
-          </span>
-        </div>
-        {data.rejected_by_name && <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Rechazado por:</span>
-          <span className={styles.detailValue}>{data.rejected_by_name} ({data.rejected_by_role})</span>
-        </div>}
-        {data.rejection_observation && <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Observación del rechazo:</span>
-          <span className={styles.detailValue}>{data.rejection_observation}</span>
-        </div>}
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Fecha de Registro:</span>
-          <span className={styles.detailValue}>
-            {new Date(data.created_at).toLocaleDateString('es-CO')}
-          </span>
-        </div>
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Estado pendiente:</span>
-          <span className={styles.detailValue}>{getPendingState(data.state_code)}</span>
-        </div>
-        {data.attachment_url && (
-          <div className={styles.attachmentPreview}>
-            <span className={styles.detailLabel}>Documento soporte:</span>
-            {(/\.(jpg|jpeg|png)$/i).test(data.attachment_url) ? (
-              <img
-                src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
-                alt="Documento soporte"
-                className={styles.attachmentImage}
-              />
+      <div className={styles.detailLayout}>
+        <div className={styles.detailInfo}>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Nombre:</span>
+              <span className={styles.detailValue}>{data.form_full_name}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Email:</span>
+              <span className={styles.detailValue}>{data.form_email}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Identificación:</span>
+              <span className={styles.detailValue}>{data.identification_id}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Cargo:</span>
+              <span className={styles.detailValue}>{data.form_position}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Teléfono:</span>
+              <span className={styles.detailValue}>{data.form_phone}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Supervisor:</span>
+              <span className={styles.detailValue}>{data.leader_name || data.direct_supervisor || 'Sin líder'}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Tipo de Novedad:</span>
+              <span className={styles.detailValue}>{data.leave_class}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Motivo:</span>
+              <span className={styles.detailValue}>{data.reason || 'Sin motivo registrado'}</span>
+            </div>
+
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Datos del permiso solicitado:</span>
+              <span className={styles.detailValue}>
+                {data.permission_type === 'hours' ? 'Permiso por horas' : 'Permiso por días'}
+              </span>
+            </div>
+
+            {data.permission_type === 'days' ? (
+              <>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Desde:</span>
+                  <span className={styles.detailValue}>{formatDate(data.start_date)}</span>
+                </div>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Hasta:</span>
+                  <span className={styles.detailValue}>{formatDate(data.end_date)}</span>
+                </div>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Total días:</span>
+                  <span className={styles.detailValue}>{data.total_days ?? 'Sin información'}</span>
+                </div>
+              </>
             ) : (
-              <iframe
-                title="Vista previa del documento soporte"
-                src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
-                className={styles.attachmentFrame}
-              />
+              <>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Fecha:</span>
+                  <span className={styles.detailValue}>{formatDate(data.permission_date)}</span>
+                </div>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Hora inicio:</span>
+                  <span className={styles.detailValue}>{formatTime(data.start_time)}</span>
+                </div>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Hora fin:</span>
+                  <span className={styles.detailValue}>{formatTime(data.end_time)}</span>
+                </div>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Total horas:</span>
+                  <span className={styles.detailValue}>{data.total_hours ?? 'Sin información'}</span>
+                </div>
+              </>
             )}
+
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Estado actual:</span>
+              <span className={`${styles.detailValue} ${styles[`status-${data.status.toLowerCase()}`]}`}>
+                {data.state_name || data.status}
+              </span>
+            </div>
+            {data.rejected_by_name && <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Rechazado por:</span>
+              <span className={styles.detailValue}>{getRejectionDisplay(data)}</span>
+            </div>}
+            {data.rejection_observation && <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Observación del rechazo:</span>
+              <span className={styles.detailValue}>{data.rejection_observation}</span>
+            </div>}
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Fecha de Registro:</span>
+              <span className={styles.detailValue}>
+                {new Date(data.created_at).toLocaleDateString('es-CO')}
+              </span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Estado pendiente:</span>
+              <span className={styles.detailValue}>{getPendingState(data.state_code)}</span>
+            </div>
+          </div>
+        </div>
+
+        {data.attachment_url ? (
+          <div className={styles.detailPreview}>
+            <div className={styles.attachmentPreview}>
+              <div className={styles.attachmentHeader}>
+                <span className={styles.detailLabel}>Documento soporte:</span>
+              </div>
+              {(/\.(jpg|jpeg|png)$/i).test(data.attachment_url) ? (
+                <img
+                  src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
+                  alt="Documento soporte"
+                  className={styles.attachmentImage}
+                />
+              ) : (
+                <iframe
+                  title="Vista previa del documento soporte"
+                  src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
+                  className={styles.attachmentFrame}
+                />
+              )}
+              <div className={styles.attachmentActions}>
+                <a
+                  href={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}?download=1`}
+                  className={styles.downloadButton}
+                  download
+                >
+                  Descargar
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.detailPreview}>
+            <div className={styles.attachmentPreview}>
+              <div className={styles.attachmentHeader}>
+                <span className={styles.detailLabel}>Documento soporte:</span>
+              </div>
+              <p className={styles.noAttachmentMessage}>No hay documento adjunto.</p>
+            </div>
           </div>
         )}
       </div>
@@ -183,26 +248,86 @@ function formatTraceDate(value) {
   });
 }
 
+function formatDate(value) {
+  if (!value) return 'Sin información';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Sin información';
+  return date.toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatTime(value) {
+  if (!value) return 'Sin información';
+  return value;
+}
+
+function getRejectionDisplay(request) {
+  if (request.rejected_by_name === 'Sistema' || request.rejected_by_role === 'Sistema') {
+    return 'Rechazado automáticamente por tiempo excedido';
+  }
+
+  return request.rejected_by_name || 'No disponible';
+}
+
 function RequestTimeline({ request }) {
   const currentState = request.state_code || 'created';
+  const hasLeaderApproval = Boolean(request.leader_approved_at);
+  const hasHrApproval = Boolean(request.completed_at);
+  const hasRejected = Boolean(request.rejected_at);
+  const isRejectedFlow = ['leader_rejected', 'hr_rejected'].includes(currentState);
+  const isExpired = currentState === 'expired';
+  const isLeaderRejected = currentState === 'leader_rejected';
+  const isAutoRejected = request.rejected_by_name === 'Sistema' || request.rejected_by_role === 'Sistema';
+  const hrStageDate = isLeaderRejected ? null : request.completed_at || request.rejected_at;
+  const hrStageActor = isLeaderRejected ? null : request.completed_by_name || request.rejected_by_name;
+
   const events = [
     {
-      label: 'Creada', date: request.created_at, actor: request.form_full_name, tone: 'created',
-      active: true, current: ['created', 'leader_pending'].includes(currentState),
+      label: 'Creada',
+      date: request.created_at,
+      actor: request.form_full_name,
+      tone: 'created',
+      active: true,
+      current: ['created', 'leader_pending'].includes(currentState),
     },
     {
-      label: 'Líder', date: request.leader_approved_at, actor: request.leader_approved_by_name, tone: 'approved',
-      active: Boolean(request.leader_approved_at) || ['hr_pending', 'completed', 'hr_rejected'].includes(currentState),
-      current: currentState === 'hr_pending',
+      label: isExpired
+        ? 'Estado líder'
+        : (currentState === 'leader_rejected'
+          ? (isAutoRejected ? 'Rechazado automáticamente por tiempo excedido' : 'Rechazado por líder')
+          : 'Estado líder'),
+      date: request.leader_approved_at || request.rejected_at,
+      actor: request.leader_approved_by_name || request.rejected_by_name,
+      tone: currentState === 'leader_rejected' ? 'rejected' : 'approved',
+      active: hasLeaderApproval || currentState === 'leader_rejected' || currentState === 'expired' || ['hr_pending', 'completed', 'hr_rejected'].includes(currentState),
+      current: currentState === 'hr_pending' || currentState === 'leader_rejected',
     },
+    ...(isLeaderRejected
+      ? []
+      : [
+          {
+            label: isExpired
+              ? 'Estado RRHH'
+              : (currentState === 'hr_rejected'
+                ? (isAutoRejected ? 'Rechazado automáticamente por tiempo excedido' : 'Rechazado por RR. HH.')
+                : 'Estado RRHH'),
+            date: hrStageDate,
+            actor: hrStageActor,
+            tone: currentState === 'hr_rejected' ? 'rejected' : 'hr',
+            active: hasHrApproval || currentState === 'hr_rejected' || currentState === 'completed' || currentState === 'expired',
+            current: currentState === 'completed' || currentState === 'hr_rejected',
+          },
+        ]),
     {
-      label: 'Finalizada', date: request.completed_at, actor: request.completed_by_name, tone: 'completed',
-      active: Boolean(request.completed_at) || currentState === 'completed', current: currentState === 'completed',
-    },
-    {
-      label: 'Rechazada', date: request.rejected_at, actor: request.rejected_by_name, tone: 'rejected',
-      active: Boolean(request.rejected_at) || ['leader_rejected', 'hr_rejected'].includes(currentState),
-      current: ['leader_rejected', 'hr_rejected'].includes(currentState),
+      label: isExpired ? 'Vencida' : 'Finalizada',
+      date: request.completed_at || request.rejected_at,
+      actor: request.completed_by_name || request.rejected_by_name,
+      tone: isExpired ? 'expired' : (isRejectedFlow ? 'rejected' : 'completed'),
+      active: hasHrApproval || hasRejected || currentState === 'completed' || currentState === 'expired' || isRejectedFlow,
+      current: currentState === 'completed' || currentState === 'expired' || isRejectedFlow,
     },
   ];
 
@@ -210,15 +335,22 @@ function RequestTimeline({ request }) {
     <div className={styles.timeline}>
       <span className={styles.timelineTitle}>Trazabilidad</span>
       <div className={styles.timelineEvents}>
-        {events.filter((event) => event.tone !== 'rejected' || event.active).map((event) => (
-          <div className={`${styles.timelineEvent} ${event.active ? styles[`timeline${event.tone}`] : styles.timelinePending} ${event.current ? styles.timelineCurrent : ''}`} key={event.label}>
-            <span className={styles.timelineDot} />
-            <div>
-              <strong>{event.label}</strong>
-              <span>{formatTraceDate(event.date)}</span>
+        {events.map((event) => {
+          const shouldHideTraceDate = isExpired && ['approved', 'hr'].includes(event.tone);
+
+          return (
+            <div
+              className={`${styles.timelineEvent} ${event.active ? styles[`timeline${event.tone}`] : styles.timelinePending} ${event.current ? styles.timelineCurrent : ''}`}
+              key={`${event.label}-${event.date || 'pending'}`}
+            >
+              <span className={styles.timelineDot} />
+              <div>
+                <strong>{event.label}</strong>
+                {!shouldHideTraceDate && <span>{formatTraceDate(event.date)}</span>}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -385,8 +517,8 @@ export default function LeaveRequestsPage() {
       leader_rejected: '#dc2626',
       hr_rejected: '#b91c1c',
       created: '#64748b',
-      completed: '#0f766e',
-      expired: '#6b7280',
+      completed: '#dc2626',
+      expired: '#f97316',
       cancelled: '#6b7280',
     };
     return colors[status.toLowerCase()] || '#64748b';
@@ -397,6 +529,8 @@ export default function LeaveRequestsPage() {
       pending: { text: 'Pendiente', color: '#FFA500' },
       approved: { text: 'Aprobado', color: '#16a34a' },
       rejected: { text: 'Rechazado', color: '#dc2626' },
+      completed: { text: 'Finalizada', color: '#dc2626' },
+      expired: { text: 'Vencida', color: '#f97316' },
       cancelled: { text: 'Cancelado', color: '#6b7280' },
     };
     return badges[status.toLowerCase()] || { text: status, color: '#64748b' };
@@ -570,7 +704,7 @@ export default function LeaveRequestsPage() {
                             </button>
                           </>
                         )}
-                        {reviewRole !== 'leader' && <button
+                        {reviewRole === 'admin' && <button
                           className={styles.deleteButton}
                           onClick={() => handleDelete(lr.id)}
                           title="Eliminar"

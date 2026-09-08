@@ -100,7 +100,7 @@ export async function POST(request) {
 
 export async function GET() {
   try {
-    const [rows] = await pool.query(`
+    const [manualSingles] = await pool.query(`
       SELECT
         r.id,
         r.employee_id,
@@ -116,7 +116,8 @@ export async function GET() {
         NULL AS series_id,
         NULL AS weekday,
         r.absence_date AS start_date,
-        r.absence_date AS end_date
+        r.absence_date AS end_date,
+        'manual' AS source
       FROM employee_absence_records r
       INNER JOIN employees e ON e.id = r.employee_id
       LEFT JOIN departments d ON d.id = e.department_id
@@ -126,7 +127,9 @@ export async function GET() {
           AND r.absence_date BETWEEN s.start_date AND s.end_date
           AND s.reason = r.reason
       )
-      UNION ALL
+    `);
+
+    const [manualSeries] = await pool.query(`
       SELECT
         s.id,
         s.employee_id,
@@ -142,12 +145,50 @@ export async function GET() {
         s.id AS series_id,
         s.weekday,
         s.start_date,
-        s.end_date
+        s.end_date,
+        'manual' AS source
       FROM absence_series s
       INNER JOIN employees e ON e.id = s.employee_id
       LEFT JOIN departments d ON d.id = e.department_id
-      ORDER BY start_date DESC, personName ASC, id DESC
     `);
+
+    const [completedLeaveRequests] = await pool.query(`
+      SELECT
+        lr.id,
+        lr.employee_id,
+        e.personName,
+        e.employeedID,
+        d.name AS department_name,
+        lr.permission_date AS absence_date,
+        lr.leave_class AS reason,
+        NULL AS notes,
+        CASE WHEN lr.permission_type = 'hours' THEN 'hours' ELSE 'series' END AS type,
+        lr.start_time,
+        lr.end_time,
+        NULL AS series_id,
+        NULL AS weekday,
+        lr.start_date,
+        lr.end_date,
+        'leave_request' AS source
+      FROM leave_requests lr
+      INNER JOIN employees e ON e.id = lr.employee_id
+      LEFT JOIN departments d ON d.id = e.department_id
+      INNER JOIN state st ON st.id = lr.state_id
+      WHERE st.code = 'completed'
+    `);
+
+    const rows = [...manualSingles, ...manualSeries, ...completedLeaveRequests]
+      .sort((a, b) => {
+        const aKey = a.start_date || a.absence_date || '';
+        const bKey = b.start_date || b.absence_date || '';
+
+        if (aKey === bKey) {
+          return String(b.id).localeCompare(String(a.id));
+        }
+
+        return bKey.localeCompare(aKey);
+      });
+
     return Response.json(okResponse(rows));
   } catch (error) {
     console.error('Error al listar novedades:', error);
@@ -160,6 +201,7 @@ export async function PUT(request) {
 
   try {
     const body = await request.json();
+    const source = String(body.source || 'manual');
     const id = Number(body.id);
     const employeeId = Number(body.employee_id);
     const type = ['series', 'hours'].includes(body.type) ? body.type : 'single';
@@ -200,6 +242,46 @@ export async function PUT(request) {
     if (employees.length === 0) {
       await connection.rollback();
       return Response.json(errorResponse('El colaborador no existe o está inactivo', 404), { status: 404 });
+    }
+
+    if (source === 'leave_request') {
+      const [existingRows] = await connection.execute(
+        `SELECT id, employee_id, permission_type, start_date, end_date, permission_date, reason, start_time, end_time
+         FROM leave_requests
+         WHERE id = ? LIMIT 1`,
+        [id]
+      );
+
+      if (existingRows.length === 0) {
+        await connection.rollback();
+        return Response.json(errorResponse('Novedad no encontrada', 404), { status: 404 });
+      }
+
+      const permissionType = type === 'hours' ? 'hours' : 'days';
+      const nextStartDate = type === 'hours' ? null : formatDate(startDate);
+      const nextEndDate = type === 'hours' ? null : formatDate(endDate);
+      const nextPermissionDate = type === 'hours' ? formatDate(startDate) : null;
+      const totalDays = type === 'hours' ? null : Math.max(1, Math.round(((endDate.getTime() - startDate.getTime()) / 86400000) + 1));
+      const totalHours = type === 'hours' ? Number((Number(endTime.substring(0, 2)) + Number(endTime.substring(3, 5)) / 60 - (Number(startTime.substring(0, 2)) + Number(startTime.substring(3, 5)) / 60)).toFixed(2)) : null;
+
+      await connection.execute(
+        `UPDATE leave_requests
+         SET employee_id = ?,
+             permission_type = ?,
+             start_date = ?,
+             end_date = ?,
+             permission_date = ?,
+             total_days = ?,
+             total_hours = ?,
+             start_time = ?,
+             end_time = ?,
+             reason = ?
+         WHERE id = ?`,
+        [employeeId, permissionType, nextStartDate, nextEndDate, nextPermissionDate, totalDays, totalHours, startTime, endTime, reason, id]
+      );
+
+      await connection.commit();
+      return Response.json(okResponse(null, { message: 'Novedad actualizada', status: 'success' }));
     }
 
     if (body.series_id) {
@@ -244,11 +326,14 @@ export async function DELETE(request) {
     const { searchParams } = new URL(request.url);
     const id = Number(searchParams.get('id'));
     const seriesId = Number(searchParams.get('series_id'));
+    const source = String(searchParams.get('source') || 'manual');
     if (!id && !seriesId) return Response.json(errorResponse('ID es requerido', 400), { status: 400 });
 
     await connection.beginTransaction();
     let result;
-    if (seriesId) {
+    if (source === 'leave_request') {
+      [result] = await connection.execute('DELETE FROM leave_requests WHERE id = ?', [id]);
+    } else if (seriesId) {
       const [series] = await connection.execute(
         'SELECT employee_id, start_date, end_date, reason FROM absence_series WHERE id = ? LIMIT 1',
         [seriesId]

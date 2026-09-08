@@ -3,9 +3,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import { query } from '@/lib/db/mysql';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
-const EXTENSIONS = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png' };
+const MAX_FILE_SIZE = 1024 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png']);
+const EXTENSIONS = { '.pdf': '.pdf', '.jpg': '.jpg', '.jpeg': '.jpg', '.png': '.png' };
 const attempts = new Map();
 const WINDOW_MS = 60_000;
 const MAX_ATTEMPTS = 5;
@@ -19,11 +19,9 @@ function rateLimited(request) {
   return recent.length > MAX_ATTEMPTS;
 }
 
-async function hasValidSignature(file) {
-  const bytes = new Uint8Array(await file.arrayBuffer()).subarray(0, 8);
-  if (file.type === 'application/pdf') return String.fromCharCode(...bytes) === '%PDF-';
-  if (file.type === 'image/png') return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
-  return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+function getNormalizedExtension(file) {
+  const extension = path.extname(file.name || '').toLowerCase();
+  return ALLOWED_EXTENSIONS.has(extension) ? extension : '';
 }
 
 export async function POST(request) {
@@ -63,8 +61,17 @@ export async function POST(request) {
     if (file !== null && !(file instanceof File)) {
       return Response.json({ error: 'El documento soporte no es válido.' }, { status: 400 });
     }
-    if (file instanceof File && (file.size > MAX_FILE_SIZE || file.size > 0 && (!ALLOWED_TYPES.has(file.type) || !(await hasValidSignature(file))))) {
-      return Response.json({ error: 'El archivo debe ser PDF, JPG o PNG y pesar máximo 5 MB.' }, { status: 400 });
+
+    let extension = '';
+    if (file instanceof File) {
+      if (file.size > MAX_FILE_SIZE) {
+        return Response.json({ error: 'El archivo debe ser PDF, JPG o PNG y pesar máximo 1 GB.' }, { status: 400 });
+      }
+
+      extension = getNormalizedExtension(file);
+      if (!extension) {
+        return Response.json({ error: 'El archivo debe ser PDF, JPG o PNG y pesar máximo 1 GB.' }, { status: 400 });
+      }
     }
 
     const employees = await query(`
@@ -84,12 +91,13 @@ export async function POST(request) {
     if (!employee) return Response.json({ error: 'El colaborador no pudo ser validado.' }, { status: 404 });
     if (!employee.leader_id) return Response.json({ error: 'El colaborador no tiene un jefe directo asignado.' }, { status: 409 });
 
-    let storedName = null;
+    let storedRelativePath = null;
     if (file instanceof File && file.size > 0) {
-      const directory = path.join(process.cwd(), 'storage', 'uploads', 'permisos');
-      await fs.mkdir(directory, { recursive: true });
-      storedName = `${randomUUID()}${EXTENSIONS[file.type]}`;
-      savedPath = path.join(directory, storedName);
+      const employeeFolder = path.join(process.cwd(), 'storage', 'uploads', 'permisos', String(employee.id));
+      await fs.mkdir(employeeFolder, { recursive: true });
+      const storedName = `${randomUUID()}${EXTENSIONS[extension]}`;
+      storedRelativePath = path.posix.join(String(employee.id), storedName);
+      savedPath = path.join(employeeFolder, storedName);
       await fs.writeFile(savedPath, Buffer.from(await file.arrayBuffer()));
     }
 
@@ -100,7 +108,7 @@ export async function POST(request) {
         end_date, permission_date, total_days, total_hours, start_time, end_time, reason,
          attachment_url, leader_id, state_id, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM state WHERE code = 'created' LIMIT 1), 'Pending')
-    `, [employee.id, employee.personName, email, documentNumber, employee.position_name || 'Sin cargo', phone, employee.leader_name || null, leaveClass, permissionType, startDate, endDate, permissionDate, calculatedTotalDays, calculatedTotalHours, startTime, endTime, reason, storedName, employee.leader_id || null]);
+    `, [employee.id, employee.personName, email, documentNumber, employee.position_name || 'Sin cargo', phone, employee.leader_name || null, leaveClass, permissionType, startDate, endDate, permissionDate, calculatedTotalDays, calculatedTotalHours, startTime, endTime, reason, storedRelativePath, employee.leader_id || null]);
 
     return Response.json({ data: { id: result.insertId }, message: 'Novedad registrada correctamente.' }, { status: 201 });
   } catch (error) {

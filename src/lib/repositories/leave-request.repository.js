@@ -43,10 +43,118 @@ async function getTraceabilityColumns() {
   return new Set(rows.map((row) => row.column_name));
 }
 
+let leaveRequestHistoryTableExists;
+
+async function hasLeaveRequestHistoryTable() {
+  if (leaveRequestHistoryTableExists === undefined) {
+    const rows = await query(
+      `SELECT COUNT(*) AS total
+       FROM information_schema.tables
+       WHERE table_schema = DATABASE()
+         AND table_name = 'leave_request_history'`
+    );
+    leaveRequestHistoryTableExists = Number(rows?.[0]?.total || 0) > 0;
+  }
+
+  return leaveRequestHistoryTableExists;
+}
+
+async function getLeaveRequestHistoryByIds(requestIds = []) {
+  if (!requestIds.length) return new Map();
+  if (!(await hasLeaveRequestHistoryTable())) return new Map();
+
+  const placeholders = requestIds.map(() => '?').join(',');
+  const rows = await query(
+    `SELECT
+      id,
+      leave_request_id,
+      action,
+      from_state,
+      to_state,
+      user_id,
+      user_name,
+      role,
+      observation,
+      created_at
+     FROM leave_request_history
+     WHERE leave_request_id IN (${placeholders})
+     ORDER BY created_at ASC, id ASC`,
+    requestIds
+  );
+
+  const historyByRequest = new Map();
+  for (const row of rows) {
+    if (!historyByRequest.has(row.leave_request_id)) {
+      historyByRequest.set(row.leave_request_id, []);
+    }
+    historyByRequest.get(row.leave_request_id).push(row);
+  }
+
+  return historyByRequest;
+}
+
+async function hydrateLeaveRequestsWithHistory(rows = []) {
+  if (!rows.length) return rows;
+
+  const requestIds = [...new Set(rows.map((row) => row.id).filter(Boolean))];
+  const historyByRequest = await getLeaveRequestHistoryByIds(requestIds);
+
+  return rows.map((row) => {
+    const historyEvents = historyByRequest.get(row.id) || [];
+    const leaderApprovedEvent = [...historyEvents].reverse().find((event) => event.action === 'leader_approved');
+    const hrApprovedEvent = [...historyEvents].reverse().find((event) => event.action === 'hr_approved');
+    const completedEvent = [...historyEvents].reverse().find((event) => event.action === 'completed');
+    const rejectedEvent = [...historyEvents].reverse().find((event) => ['leader_rejected', 'hr_rejected', 'rejected'].includes(event.action));
+
+    return {
+      ...row,
+      leader_approved_at: row.leader_approved_at || leaderApprovedEvent?.created_at || null,
+      leader_approved_by_name: row.leader_approved_by_name || leaderApprovedEvent?.user_name || null,
+      completed_at: row.completed_at || hrApprovedEvent?.created_at || completedEvent?.created_at || null,
+      completed_by_name: row.completed_by_name || hrApprovedEvent?.user_name || completedEvent?.user_name || null,
+      rejected_at: row.rejected_at || rejectedEvent?.created_at || null,
+      rejected_by_name: row.rejected_by_name || rejectedEvent?.user_name || null,
+      rejected_by_role: row.rejected_by_role || rejectedEvent?.role || null,
+      rejection_observation: row.rejection_observation || rejectedEvent?.observation || null,
+      history_events: historyEvents,
+    };
+  });
+}
+
+async function autoRejectExpiredLeaveRequests() {
+  const rows = await query(
+    `SELECT lr.id, s.code AS state_code
+     FROM leave_requests lr
+     INNER JOIN state s ON s.id = lr.state_id
+     WHERE s.code IN ('created', 'leader_pending', 'hr_pending')
+       AND lr.created_at < DATE_SUB(NOW(), INTERVAL 5 DAY)`
+  );
+
+  if (!rows.length) return 0;
+
+  for (const row of rows) {
+    await query(
+      `UPDATE leave_requests
+       SET state_id = (SELECT id FROM state WHERE code = 'expired' LIMIT 1),
+           status = 'Expired',
+           rejected_by_user_id = NULL,
+           rejected_by_name = NULL,
+           rejected_by_role = NULL,
+           rejected_at = NOW()
+       WHERE id = ?`,
+      [Number(row.id)]
+    );
+  }
+
+  return rows.length;
+}
+
 export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
+  await autoRejectExpiredLeaveRequests();
+
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
-  return query(
+  const rows = await query(
     `
       SELECT
         lr.id,
@@ -59,6 +167,14 @@ export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
         lr.direct_supervisor,
             lr.leave_class,
             lr.reason,
+            lr.permission_type,
+            lr.start_date,
+            lr.end_date,
+            lr.permission_date,
+            lr.total_days,
+            lr.total_hours,
+            lr.start_time,
+            lr.end_time,
             lr.attachment_url,
         lr.status,
         lr.created_at,
@@ -86,9 +202,13 @@ export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
     `,
     leaderUserId ? [Number(leaderUserId), Number(limit)] : [Number(limit)]
   );
+
+  return hydrateLeaveRequestsWithHistory(rows);
 }
 
 export async function findLeaveRequestById(id) {
+  await autoRejectExpiredLeaveRequests();
+
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
   const rows = await query(
@@ -104,6 +224,14 @@ export async function findLeaveRequestById(id) {
         lr.direct_supervisor,
         lr.leave_class,
         lr.reason,
+        lr.permission_type,
+        lr.start_date,
+        lr.end_date,
+        lr.permission_date,
+        lr.total_days,
+        lr.total_hours,
+        lr.start_time,
+        lr.end_time,
         lr.attachment_url,
         lr.status,
         lr.created_at,
@@ -131,13 +259,16 @@ export async function findLeaveRequestById(id) {
     [Number(id)]
   );
 
-  return rows?.[0] ?? null;
+  const hydratedRows = await hydrateLeaveRequestsWithHistory(rows);
+  return hydratedRows?.[0] ?? null;
 }
 
 export async function findLeaveRequestsByEmployeeId(employee_id) {
+  await autoRejectExpiredLeaveRequests();
+
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
-  return query(
+  const rows = await query(
     `
       SELECT
         lr.id,
@@ -150,6 +281,14 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
         lr.direct_supervisor,
         lr.leave_class,
         lr.reason,
+        lr.permission_type,
+        lr.start_date,
+        lr.end_date,
+        lr.permission_date,
+        lr.total_days,
+        lr.total_hours,
+        lr.start_time,
+        lr.end_time,
         lr.attachment_url,
         lr.status,
         lr.created_at,
@@ -176,12 +315,16 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
     `,
     [Number(employee_id)]
   );
+
+  return hydrateLeaveRequestsWithHistory(rows);
 }
 
 export async function findLeaveRequestsByStatus(status) {
+  await autoRejectExpiredLeaveRequests();
+
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
-  return query(
+  const rows = await query(
     `
       SELECT
         lr.id,
@@ -194,6 +337,14 @@ export async function findLeaveRequestsByStatus(status) {
         lr.direct_supervisor,
         lr.leave_class,
         lr.reason,
+        lr.permission_type,
+        lr.start_date,
+        lr.end_date,
+        lr.permission_date,
+        lr.total_days,
+        lr.total_hours,
+        lr.start_time,
+        lr.end_time,
         lr.attachment_url,
         lr.status,
         lr.created_at,
@@ -220,6 +371,8 @@ export async function findLeaveRequestsByStatus(status) {
     `,
     [status]
   );
+
+  return hydrateLeaveRequestsWithHistory(rows);
 }
 
 export async function updateLeaveRequestStatus(id, status) {
@@ -275,39 +428,98 @@ export async function reviewLeaveRequest({ id, action, role, userId, userName, o
 
   const isRejection = action === 'reject';
   const traceabilityColumns = await getTraceabilityColumns();
-  const traceabilityUpdates = [];
-  const traceabilityParams = [];
+  const hasRejectionObservation = await hasRejectionObservationColumn();
+
+  const updateClauses = [
+    'state_id = (SELECT id FROM state WHERE code = ? LIMIT 1)',
+    'status = ?',
+    'rejected_by_user_id = CASE WHEN ? THEN ? ELSE rejected_by_user_id END',
+    'rejected_by_name = CASE WHEN ? THEN ? ELSE rejected_by_name END',
+    'rejected_by_role = CASE WHEN ? THEN ? ELSE rejected_by_role END',
+    'rejected_at = CASE WHEN ? THEN NOW() ELSE rejected_at END',
+  ];
+
+  const queryParams = [
+    transition.to,
+    transition.legacy,
+    isRejection,
+    Number(userId) || null,
+    isRejection,
+    userName || null,
+    isRejection,
+    role,
+    isRejection,
+  ];
+
+  if (hasRejectionObservation) {
+    updateClauses.push('rejection_observation = CASE WHEN ? THEN ? ELSE rejection_observation END');
+    queryParams.push(isRejection, String(observation || '').trim() || null);
+  }
+
   if (traceabilityColumns.has('leader_approved_at')) {
-    traceabilityUpdates.push('leader_approved_at = CASE WHEN ? THEN NOW() ELSE leader_approved_at END');
-    traceabilityParams.push(role === 'leader' && action === 'approve');
+    updateClauses.push('leader_approved_at = CASE WHEN ? THEN NOW() ELSE leader_approved_at END');
+    queryParams.push(role === 'leader' && action === 'approve');
   }
+
   if (traceabilityColumns.has('leader_approved_by_name')) {
-    traceabilityUpdates.push('leader_approved_by_name = CASE WHEN ? THEN ? ELSE leader_approved_by_name END');
-    traceabilityParams.push(role === 'leader' && action === 'approve', userName || null);
+    updateClauses.push('leader_approved_by_name = CASE WHEN ? THEN ? ELSE leader_approved_by_name END');
+    queryParams.push(role === 'leader' && action === 'approve', userName || null);
   }
+
   if (traceabilityColumns.has('completed_at')) {
-    traceabilityUpdates.push('completed_at = CASE WHEN ? THEN NOW() ELSE completed_at END');
-    traceabilityParams.push(role === 'hr' && action === 'approve');
+    updateClauses.push('completed_at = CASE WHEN ? THEN NOW() ELSE completed_at END');
+    queryParams.push(role === 'hr' && action === 'approve');
   }
+
   if (traceabilityColumns.has('completed_by_name')) {
-    traceabilityUpdates.push('completed_by_name = CASE WHEN ? THEN ? ELSE completed_by_name END');
-    traceabilityParams.push(role === 'hr' && action === 'approve', userName || null);
+    updateClauses.push('completed_by_name = CASE WHEN ? THEN ? ELSE completed_by_name END');
+    queryParams.push(role === 'hr' && action === 'approve', userName || null);
   }
+
+  queryParams.push(Number(id));
+
   await query(
     `UPDATE leave_requests
-     SET state_id = (SELECT id FROM state WHERE code = ? LIMIT 1),
-         status = ?,
-         rejected_by_user_id = CASE WHEN ? THEN ? ELSE rejected_by_user_id END,
-         rejected_by_name = CASE WHEN ? THEN ? ELSE rejected_by_name END,
-         rejected_by_role = CASE WHEN ? THEN ? ELSE rejected_by_role END,
-         rejected_at = CASE WHEN ? THEN NOW() ELSE rejected_at END
-            ,rejection_observation = CASE WHEN ? THEN ? ELSE rejection_observation END,
-            leader_approved_at = CASE WHEN ? THEN NOW() ELSE leader_approved_at END,
-            leader_approved_by_name = CASE WHEN ? THEN ? ELSE leader_approved_by_name END,
-                ${traceabilityUpdates.length ? `,${traceabilityUpdates.join(',\n         ')}` : ''}
+     SET ${updateClauses.join(',\n         ')}
      WHERE id = ?`,
-              [transition.to, transition.legacy, isRejection, Number(userId) || null, isRejection, userName || null, isRejection, role, isRejection, isRejection, String(observation || '').trim() || null, ...traceabilityParams, Number(id)]
+    queryParams
   );
+
+  const historyAction =
+    role === 'leader' && action === 'approve'
+      ? 'leader_approved'
+      : role === 'leader' && action === 'reject'
+        ? 'leader_rejected'
+        : role === 'hr' && action === 'approve'
+          ? 'hr_approved'
+          : 'hr_rejected';
+
+  if (await hasLeaveRequestHistoryTable()) {
+    await query(
+      `INSERT INTO leave_request_history (
+        leave_request_id,
+        action,
+        from_state,
+        to_state,
+        user_id,
+        user_name,
+        role,
+        observation,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        Number(id),
+        historyAction,
+        currentState,
+        transition.to,
+        Number(userId) || null,
+        userName || null,
+        role,
+        isRejection ? String(observation || '').trim() || null : null,
+      ]
+    );
+  }
+
   return { id: Number(id), state: transition.to, action, rejectedBy: isRejection ? userName : null, observation: isRejection ? String(observation).trim() : null };
 }
 
