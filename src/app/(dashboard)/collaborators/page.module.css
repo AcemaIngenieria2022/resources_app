@@ -462,6 +462,11 @@
   box-shadow: 0 12px 28px rgba(14, 34, 77, 0.07);
 }
 
+.leaderCard.dropTarget {
+  border-color: #168f80;
+  box-shadow: 0 0 0 3px rgba(22, 143, 128, 0.16), 0 12px 28px rgba(14, 34, 77, 0.07);
+}
+
 .leaderNode {
   display: flex;
   align-items: center;
@@ -571,8 +576,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   margin: 0;
   padding: 0;
   border: none;
@@ -580,7 +585,7 @@
   background: transparent;
   color: #168f80;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -594,8 +599,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   padding: 0;
   border: none;
@@ -603,7 +608,7 @@
   background: transparent;
   color: #b42318;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -614,8 +619,31 @@
 }
 
 .smallIcon {
-  font-size: 14px;
+  font-size: 11px;
   line-height: 1;
+}
+
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: grab;
+  font-size: 11px;
+}
+
+.dragHandle:hover,
+.dragHandle:focus-visible {
+  color: #168f80;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
 }
 
 .collaboratorNodes {
@@ -701,6 +729,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
 }
 
 .assignmentList {
@@ -754,9 +783,41 @@
 }
 
 .assignmentOption input {
-  width: 16px;
-  height: 16px;
-  accent-color: #168f80;
+  appearance: none;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  place-content: center;
+  margin: 0;
+  border: 1px solid #9edbd2;
+  border-radius: 5px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.assignmentOption input::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #168f80;
+  content: '';
+  transform: scale(0);
+  transition: transform 120ms ease-in-out;
+}
+
+.assignmentOption input:checked {
+  border-color: #168f80;
+  background: #e8faf6;
+}
+
+.assignmentOption input:checked::before {
+  transform: scale(1);
+}
+
+.assignmentOption input:focus-visible {
+  outline: 3px solid rgba(54, 187, 167, 0.2);
+  outline-offset: 2px;
 }
 
 .assignmentOption strong,

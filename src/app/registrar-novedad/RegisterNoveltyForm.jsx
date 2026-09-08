@@ -27,7 +27,7 @@ export default function RegisterNoveltyForm() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'No fue posible validar el documento.');
       setEmployee(payload.data);
-      setForm((current) => ({ ...current, email: '' }));
+      setForm((current) => ({ ...current, email: payload.data.email || '' }));
     } catch (error) { setMessage({ type: 'error', text: error.message }); } finally { setLoading(false); }
   }
 
@@ -116,7 +116,7 @@ export default function RegisterNoveltyForm() {
             <h2 className={styles.sectionTitle}>Datos del colaborador solicitante</h2>
             <div className={styles.employee}>
               <strong>{employee.personName}</strong>
-              <span>Correo electrónico: se solicitará en el formulario</span>
+              <span>Correo electrónico: {employee.email || 'Sin correo vinculado'}</span>
               <span>No. de identificación: {employee.identification_id}</span>
               <span>Cargo: {employee.position_name || 'Sin cargo'}</span>
               <span>Departamento: {employee.department_name || 'Sin departamento'}</span>

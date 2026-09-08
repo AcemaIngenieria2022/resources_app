@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,6 +12,7 @@ import {
   faCheck,
   faTimes,
   faEye,
+  faRefresh,
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './page.module.css';
 import { useAuthContext } from '@/context/AuthContext';
@@ -112,7 +113,11 @@ const DetailModal = ({ isOpen, data, onClose }) => {
           <span className={styles.detailValue}>{data.leave_class}</span>
         </div>
         <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Estado:</span>
+          <span className={styles.detailLabel}>Motivo:</span>
+          <span className={styles.detailValue}>{data.reason || 'Sin motivo registrado'}</span>
+        </div>
+        <div className={styles.detailRow}>
+          <span className={styles.detailLabel}>Estado actual:</span>
           <span className={`${styles.detailValue} ${styles[`status-${data.status.toLowerCase()}`]}`}>
             {data.state_name || data.status}
           </span>
@@ -121,16 +126,103 @@ const DetailModal = ({ isOpen, data, onClose }) => {
           <span className={styles.detailLabel}>Rechazado por:</span>
           <span className={styles.detailValue}>{data.rejected_by_name} ({data.rejected_by_role})</span>
         </div>}
+        {data.rejection_observation && <div className={styles.detailRow}>
+          <span className={styles.detailLabel}>Observación del rechazo:</span>
+          <span className={styles.detailValue}>{data.rejection_observation}</span>
+        </div>}
         <div className={styles.detailRow}>
           <span className={styles.detailLabel}>Fecha de Registro:</span>
           <span className={styles.detailValue}>
             {new Date(data.created_at).toLocaleDateString('es-CO')}
           </span>
         </div>
+        <div className={styles.detailRow}>
+          <span className={styles.detailLabel}>Estado pendiente:</span>
+          <span className={styles.detailValue}>{getPendingState(data.state_code)}</span>
+        </div>
+        {data.attachment_url && (
+          <div className={styles.attachmentPreview}>
+            <span className={styles.detailLabel}>Documento soporte:</span>
+            {(/\.(jpg|jpeg|png)$/i).test(data.attachment_url) ? (
+              <img
+                src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
+                alt="Documento soporte"
+                className={styles.attachmentImage}
+              />
+            ) : (
+              <iframe
+                title="Vista previa del documento soporte"
+                src={`/api/leave-requests/attachment/${encodeURIComponent(data.attachment_url)}`}
+                className={styles.attachmentFrame}
+              />
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
 };
+
+function getPendingState(stateCode) {
+  const states = {
+    created: 'Pendiente de aprobación del líder',
+    leader_pending: 'Pendiente de aprobación del líder',
+    leader_approved: 'Pendiente de revisión de RR. HH.',
+    hr_pending: 'Pendiente de revisión de RR. HH.',
+  };
+  return states[stateCode] || 'Sin estado pendiente';
+}
+
+function formatTraceDate(value) {
+  if (!value) return 'Pendiente';
+  return new Date(value).toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function RequestTimeline({ request }) {
+  const currentState = request.state_code || 'created';
+  const events = [
+    {
+      label: 'Creada', date: request.created_at, actor: request.form_full_name, tone: 'created',
+      active: true, current: ['created', 'leader_pending'].includes(currentState),
+    },
+    {
+      label: 'Líder', date: request.leader_approved_at, actor: request.leader_approved_by_name, tone: 'approved',
+      active: Boolean(request.leader_approved_at) || ['hr_pending', 'completed', 'hr_rejected'].includes(currentState),
+      current: currentState === 'hr_pending',
+    },
+    {
+      label: 'Finalizada', date: request.completed_at, actor: request.completed_by_name, tone: 'completed',
+      active: Boolean(request.completed_at) || currentState === 'completed', current: currentState === 'completed',
+    },
+    {
+      label: 'Rechazada', date: request.rejected_at, actor: request.rejected_by_name, tone: 'rejected',
+      active: Boolean(request.rejected_at) || ['leader_rejected', 'hr_rejected'].includes(currentState),
+      current: ['leader_rejected', 'hr_rejected'].includes(currentState),
+    },
+  ];
+
+  return (
+    <div className={styles.timeline}>
+      <span className={styles.timelineTitle}>Trazabilidad</span>
+      <div className={styles.timelineEvents}>
+        {events.filter((event) => event.tone !== 'rejected' || event.active).map((event) => (
+          <div className={`${styles.timelineEvent} ${event.active ? styles[`timeline${event.tone}`] : styles.timelinePending} ${event.current ? styles.timelineCurrent : ''}`} key={event.label}>
+            <span className={styles.timelineDot} />
+            <div>
+              <strong>{event.label}</strong>
+              <span>{formatTraceDate(event.date)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function LeaveRequestsPage() {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -141,7 +233,12 @@ export default function LeaveRequestsPage() {
   const [alert, setAlert] = useState(null);
   const [detailModal, setDetailModal] = useState({ isOpen: false, data: null });
   const { user } = useAuthContext();
-  const reviewRole = ['hr', 'rrhh'].includes(String(user?.role || '').toLowerCase().replace(/[.\s]/g, '')) ? 'hr' : 'leader';
+  const normalizedRole = String(user?.role || '').toLowerCase().replace(/[.\s]/g, '');
+  const reviewRole = ['hr', 'rrhh'].includes(normalizedRole)
+    ? 'hr'
+    : ['approver', 'leader'].includes(normalizedRole)
+      ? 'leader'
+      : normalizedRole;
 
   const showAlert = useCallback((message, type = 'success') => {
     setAlert({ message, type });
@@ -150,9 +247,13 @@ export default function LeaveRequestsPage() {
   const loadLeaveRequests = useCallback(async () => {
     try {
       setLoading(true);
-      const url = statusFilter !== 'all' 
-        ? `/api/admin/leave-requests?status=${statusFilter}`
-        : '/api/admin/leave-requests';
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (reviewRole === 'leader') {
+        params.set('role', 'leader');
+        params.set('userId', String(user?.id || ''));
+      }
+      const url = `/api/admin/leave-requests?${params.toString()}`;
       
       const res = await fetch(url);
       const payload = await res.json();
@@ -163,43 +264,60 @@ export default function LeaveRequestsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, showAlert]);
+  }, [statusFilter, reviewRole, user, showAlert]);
 
   const loadStatistics = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/leave-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'statistics' }),
+        body: JSON.stringify({ action: 'statistics', role: reviewRole, userId: user?.id }),
       });
       const payload = await res.json();
       setStatistics(payload?.data || {});
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [reviewRole, user]);
 
   useEffect(() => {
-    loadLeaveRequests();
-    loadStatistics();
+    const timer = setTimeout(() => {
+      void loadLeaveRequests();
+      void loadStatistics();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadLeaveRequests, loadStatistics]);
 
   const handleReview = async (id, reviewAction) => {
-    const result = await Swal.fire({
-      title: 'Confirmar',
-      text: `¿${reviewAction === 'approve' ? 'Aprobar' : 'Rechazar'} esta novedad?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, cambiar',
-      cancelButtonText: 'Cancelar',
-    });
+    const result = await Swal.fire(reviewAction === 'reject'
+      ? {
+        title: 'Rechazar novedad',
+        input: 'textarea',
+        inputLabel: 'Observación',
+        inputPlaceholder: 'Explica el motivo del rechazo...',
+        inputAttributes: { maxlength: 1000, 'aria-label': 'Observación del rechazo' },
+        inputValidator: (value) => (!value?.trim() ? 'La observación es obligatoria.' : undefined),
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Rechazar',
+        cancelButtonText: 'Cancelar',
+      }
+      : {
+        title: 'Confirmar aprobación',
+        text: '¿Aprobar esta novedad?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, aprobar',
+        cancelButtonText: 'Cancelar',
+      });
 
     if (result.isConfirmed) {
       try {
         const res = await fetch('/api/admin/leave-requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'review', id, reviewAction, role: reviewRole, userId: user?.id, userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email }),
+          body: JSON.stringify({ action: 'review', id, reviewAction, role: reviewRole, userId: user?.id, userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email, observation: result.value || null }),
         });
         const payload = await res.json();
         if (payload?.success) {
@@ -231,7 +349,7 @@ export default function LeaveRequestsPage() {
         const res = await fetch('/api/admin/leave-requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete', id }),
+          body: JSON.stringify({ action: 'delete', id, role: reviewRole, userId: user?.id }),
         });
         const payload = await res.json();
         if (payload?.success) {
@@ -306,6 +424,18 @@ export default function LeaveRequestsPage() {
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          className={styles.refreshButton}
+          onClick={async () => {
+            await Promise.all([loadLeaveRequests(), loadStatistics()]);
+          }}
+          disabled={loading}
+          title="Actualizar novedades"
+        >
+          <FontAwesomeIcon icon={faRefresh} spin={loading} />
+          Actualizar
+        </button>
       </div>
 
       {/* Statistics */}
@@ -389,7 +519,8 @@ export default function LeaveRequestsPage() {
                     ? { text: lr.state_name, color: getStatusColor(lr.state_code || lr.status) }
                     : getStatusBadge(lr.status);
                   return (
-                    <tr key={lr.id}>
+                    <Fragment key={lr.id}>
+                    <tr className={styles.requestRow} key={lr.id}>
                       <td>
                         <strong>{lr.form_full_name}</strong>
                       </td>
@@ -439,15 +570,21 @@ export default function LeaveRequestsPage() {
                             </button>
                           </>
                         )}
-                        <button
+                        {reviewRole !== 'leader' && <button
                           className={styles.deleteButton}
                           onClick={() => handleDelete(lr.id)}
                           title="Eliminar"
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        </button>}
                       </td>
                     </tr>
+                    <tr className={styles.timelineRow} key={`${lr.id}-timeline`}>
+                      <td colSpan="8">
+                        <RequestTimeline request={lr} />
+                      </td>
+                    </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -102,12 +102,16 @@ const bindPasswordToggle = (inputId, buttonId) => {
 };
 
 // SweetAlert Form
-const showUserForm = async ({ mode, user = {} }) => {
+const showUserForm = async ({ mode, user = {}, employees = [] }) => {
   const email = escapeHtml(user.email || '');
   const firstName = escapeHtml(user.first_name || '');
   const lastName = escapeHtml(user.last_name || '');
   const role = user.role || 'user';
   const status = normalizeStatus((user.status ?? user.active) || 'active');
+  const employeeOptions = employees
+    .filter((employee) => !employee.user_id || employee.id === user.employee_id)
+    .map((employee) => `<option value="${employee.id}" ${employee.id === user.employee_id ? 'selected' : ''}>${escapeHtml(`${employee.personName} (${employee.employeedID})`)}</option>`)
+    .join('');
 
   const html = `
     <div style="display:flex;flex-direction:column;gap:16px;padding:1px 0;">
@@ -130,6 +134,13 @@ const showUserForm = async ({ mode, user = {} }) => {
       <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-check-circle" style="color:#94a3b8;"></i>
         <select id="swal-user-status" class="swal2-select" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">${buildSelectOptions(statusOptions, status)}</select>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
+        <i class="fas fa-id-card" style="color:#94a3b8;"></i>
+        <select id="swal-user-employee" class="swal2-select" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
+          <option value="">Sin empleado vinculado</option>
+          ${employeeOptions}
+        </select>
       </div>
       ${
         mode === 'create'
@@ -178,6 +189,7 @@ const showUserForm = async ({ mode, user = {} }) => {
       const lastNameValue = document.getElementById('swal-user-last-name')?.value.trim();
       const roleValue = document.getElementById('swal-user-role')?.value;
       const statusValue = document.getElementById('swal-user-status')?.value;
+      const employeeValue = document.getElementById('swal-user-employee')?.value || '';
 
       if (!emailValue || !firstNameValue || !lastNameValue) {
         Swal.showValidationMessage('Completa email, nombre y apellido');
@@ -204,6 +216,7 @@ const showUserForm = async ({ mode, user = {} }) => {
           lastName: lastNameValue,
           role: roleValue,
           status: statusValue,
+          employeeId: employeeValue || null,
           password: passwordValue,
         };
       }
@@ -214,6 +227,7 @@ const showUserForm = async ({ mode, user = {} }) => {
         lastName: lastNameValue,
         role: roleValue,
         status: statusValue,
+        employeeId: employeeValue || null,
       };
     },
   });
@@ -224,6 +238,7 @@ const showUserForm = async ({ mode, user = {} }) => {
 // Component
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [searchReadOnly, setSearchReadOnly] = useState(true);
@@ -231,8 +246,20 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  const fetchEmployees = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/employees');
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) throw new Error(payload?.error || 'No se pudo cargar empleados');
+      setEmployees(payload.data || []);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al cargar empleados');
+    }
+  }, []);
+
   // API Functions
-  const fetchUsers = async ({ search: searchValue, role: roleValue } = {}) => {
+  const fetchUsers = useCallback(async ({ search: searchValue, role: roleValue } = {}) => {
     setLoading(true);
     setError('');
     setMessage('');
@@ -261,7 +288,7 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, selectedRole]);
 
   // CRUD Handlers
   const handleCreateUser = async (formData) => {
@@ -280,6 +307,7 @@ export default function UserManagementPage() {
           lastName: formData.lastName,
           role: formData.role,
           status: formData.status,
+          employeeId: formData.employeeId,
         }),
       });
 
@@ -324,6 +352,7 @@ export default function UserManagementPage() {
           lastName: formData.lastName,
           role: formData.role,
           status: formData.status,
+          employeeId: formData.employeeId,
         }),
       });
 
@@ -355,7 +384,7 @@ export default function UserManagementPage() {
   const handleOpenCreate = async () => {
     setSearch('');
     try {
-      const values = await showUserForm({ mode: 'create' });
+      const values = await showUserForm({ mode: 'create', employees });
       if (values) {
         await handleCreateUser(values);
       }
@@ -375,7 +404,7 @@ export default function UserManagementPage() {
 
   const handleEdit = async (user) => {
     try {
-      const values = await showUserForm({ mode: 'edit', user });
+      const values = await showUserForm({ mode: 'edit', user, employees });
       if (values) {
         await handleSave(user.id, values);
       }
@@ -505,8 +534,13 @@ export default function UserManagementPage() {
 
   // Effects
   useEffect(() => {
-    fetchUsers();
-  }, [search, selectedRole]);
+    const timer = setTimeout(() => {
+      void fetchUsers();
+      void fetchEmployees();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchEmployees, fetchUsers]);
 
   return (
     <main className={styles.pageContainer}>

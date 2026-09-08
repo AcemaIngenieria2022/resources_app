@@ -18,6 +18,7 @@ import {
   faSitemap,
   faUserPlus,
   faUserMinus,
+  faGripVertical,
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './page.module.css';
 
@@ -462,6 +463,23 @@ export default function CollaboratorsAdminPage() {
     }
   }
 
+  async function handleMoveLeader(employeeId, leaderId) {
+    try {
+      const response = await fetch('/api/admin/leader-employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: employeeId, leader_id: leaderId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) throw new Error(payload?.error || 'No se pudo mover el líder');
+      showAlert('Conexión actualizada', 'success');
+      await Promise.all([loadEmployees(), loadLeaders()]);
+    } catch (error) {
+      console.error(error);
+      showAlert(error.message || 'No se pudo mover el líder', 'error');
+    }
+  }
+
   // Función para abrir modal de edición con documento
   const handleEditEmployee = useCallback(async (employee) => {
     const employeeData = { ...employee };
@@ -734,6 +752,7 @@ export default function CollaboratorsAdminPage() {
           leaders={leaders}
           onAssignEmployees={handleAssignEmployees}
           onRemoveEmployee={handleUnassignEmployee}
+          onMoveLeader={handleMoveLeader}
           onEditEmployee={handleEditEmployee}
         />
       )}
@@ -787,12 +806,15 @@ export default function CollaboratorsAdminPage() {
   );
 }
 
-function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee, onEditEmployee }) {
+function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee, onMoveLeader, onEditEmployee }) {
   const [activeLeader, setActiveLeader] = useState(null);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
+  const [unassignedSearch, setUnassignedSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
+  const [dropTargetId, setDropTargetId] = useState(null);
   const leadersByEmployeeId = new Map(leaders.map((leader) => [leader.employee_id, leader]));
   const rootLeaders = leaders.filter((leader) => {
     const employee = employees.find((item) => item.id === leader.employee_id);
@@ -801,6 +823,10 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
   const visibleLeaders = rootLeaders.length > 0 ? rootLeaders : leaders;
   const assignedEmployeeIds = new Set(employees.filter((employee) => employee.leader_id).map((employee) => employee.id));
   const withoutLeader = employees.filter((employee) => !assignedEmployeeIds.has(employee.id));
+  const filteredWithoutLeader = withoutLeader.filter((employee) => {
+    const text = `${employee.personName || ''} ${employee.last_name || ''}`.toLowerCase();
+    return text.includes(unassignedSearch.toLowerCase());
+  });
   const assignedCount = employees.length - withoutLeader.length;
 
   function openAssignment(leader) {
@@ -815,6 +841,61 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
     setSelectedEmployeeIds((current) => current.includes(employeeId)
       ? current.filter((id) => id !== employeeId)
       : [...current, employeeId]);
+  }
+
+  function getDescendantEmployeeIds(leaderId) {
+    const descendantIds = new Set();
+    const pendingLeaderIds = [leaderId];
+
+    while (pendingLeaderIds.length > 0) {
+      const currentLeaderId = pendingLeaderIds.pop();
+      employees
+        .filter((employee) => employee.leader_id === currentLeaderId)
+        .forEach((employee) => {
+          if (!descendantIds.has(employee.id)) {
+            descendantIds.add(employee.id);
+            const childLeader = leadersByEmployeeId.get(employee.id);
+            if (childLeader) pendingLeaderIds.push(childLeader.id);
+          }
+        });
+    }
+
+    return descendantIds;
+  }
+
+  function handleDragStart(event, item) {
+    const employeeId = item.employee_id ?? item.id;
+    setDraggedEmployeeId(employeeId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(employeeId));
+  }
+
+  function handleDragEnd() {
+    setDraggedEmployeeId(null);
+    setDropTargetId(null);
+  }
+
+  function handleDragOver(event, leader) {
+    event.stopPropagation();
+    if (!draggedEmployeeId || draggedEmployeeId === leader.employee_id) return;
+    const descendants = getDescendantEmployeeIds(
+      leadersByEmployeeId.get(draggedEmployeeId)?.id
+    );
+    if (descendants.has(leader.employee_id)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetId(leader.employee_id);
+  }
+
+  async function handleDrop(event, leader) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!draggedEmployeeId || draggedEmployeeId === leader.employee_id) return;
+    const draggedLeader = leadersByEmployeeId.get(draggedEmployeeId);
+    const descendants = getDescendantEmployeeIds(draggedLeader?.id);
+    if (descendants.has(leader.employee_id)) return;
+    await onMoveLeader(draggedEmployeeId, leader.id);
+    handleDragEnd();
   }
 
   async function saveAssignments() {
@@ -874,6 +955,12 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
               path={new Set()}
               onAddPeople={openAssignment}
               onRemoveEmployee={onRemoveEmployee}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              dropTargetId={dropTargetId}
+              isDropTarget={dropTargetId === leader.employee_id}
               onSelectEmployee={setSelectedEmployee}
             />
           ))}
@@ -891,8 +978,16 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
             </div>
             <span className={styles.unassignedCount}>{withoutLeader.length}</span>
           </div>
+          <input
+            type="search"
+            className={styles.assignmentSearch}
+            value={unassignedSearch}
+            onChange={(event) => setUnassignedSearch(event.target.value)}
+            placeholder="Buscar colaborador por nombre o apellido"
+            aria-label="Buscar colaborador pendiente por nombre o apellido"
+          />
           <div className={styles.unassignedList}>
-            {withoutLeader.map((employee) => (
+            {filteredWithoutLeader.map((employee) => (
               <div className={styles.unassignedItem} key={employee.id}>
                 <button
                   type="button"
@@ -904,8 +999,22 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
                   <span className={styles.collaboratorAvatar}>{employee.personName?.charAt(0) || 'C'}</span>
                 </button>
                 <div><strong>{employee.personName}</strong><span>{employee.department_name || 'Sin departamento'}</span></div>
+                <button
+                  type="button"
+                  className={styles.dragHandle}
+                  draggable
+                  onDragStart={(event) => handleDragStart(event, employee)}
+                  onDragEnd={handleDragEnd}
+                  aria-label={`Arrastrar a ${employee.personName}`}
+                  title="Arrastrar para asignar"
+                >
+                  <FontAwesomeIcon icon={faGripVertical} />
+                </button>
               </div>
             ))}
+            {filteredWithoutLeader.length === 0 && (
+              <div className={styles.emptyNode}>No hay colaboradores que coincidan con la búsqueda.</div>
+            )}
           </div>
         </div>
       )}
@@ -1011,15 +1120,44 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
   );
 }
 
-function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeople, onRemoveEmployee, onSelectEmployee }) {
+function HierarchyNode({
+  leader,
+  employees,
+  leadersByEmployeeId,
+  path,
+  onAddPeople,
+  onRemoveEmployee,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  dropTargetId,
+  isDropTarget,
+  onSelectEmployee,
+}) {
   const nextPath = new Set(path);
   nextPath.add(leader.id);
   const directReports = employees.filter((employee) => employee.leader_id === leader.id);
   const leaderEmployee = employees.find((employee) => employee.id === leader.employee_id) || leader;
 
   return (
-    <article className={styles.leaderCard}>
+    <article
+      className={`${styles.leaderCard} ${isDropTarget ? styles.dropTarget : ''}`}
+      onDragOver={(event) => onDragOver(event, leader)}
+      onDrop={(event) => void onDrop(event, leader)}
+    >
       <div className={styles.nodeActions}>
+        <button
+          type="button"
+          className={styles.dragHandle}
+          draggable
+          onDragStart={(event) => onDragStart(event, leader)}
+          onDragEnd={onDragEnd}
+          aria-label={`Arrastrar a ${leader.personName}`}
+          title="Arrastrar para conectar"
+        >
+          <FontAwesomeIcon icon={faGripVertical} />
+        </button>
         {path.size > 0 && (
           <button
             type="button"
@@ -1041,7 +1179,9 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
           <FontAwesomeIcon icon={faUserPlus} className={styles.smallIcon} />
         </button>
       </div>
-      <div className={styles.leaderNode}>
+      <div
+        className={styles.leaderNode}
+      >
         <button
           type="button"
           className={styles.leaderAvatarButton}
@@ -1072,6 +1212,12 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
                   path={nextPath}
                   onAddPeople={onAddPeople}
                   onRemoveEmployee={onRemoveEmployee}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                  dropTargetId={dropTargetId}
+                  isDropTarget={dropTargetId === childLeader.employee_id}
                   onSelectEmployee={onSelectEmployee}
                 />
               </div>
@@ -1095,6 +1241,17 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
                 <span className={styles.nodeDepartment}>{employee.department_name || 'Sin departamento'}</span>
               </div>
               <div className={styles.collaboratorActions}>
+                <button
+                  type="button"
+                  className={styles.dragHandle}
+                  draggable
+                  onDragStart={(event) => onDragStart(event, employee)}
+                  onDragEnd={onDragEnd}
+                  aria-label={`Arrastrar a ${employee.personName}`}
+                  title="Arrastrar para conectar"
+                >
+                  <FontAwesomeIcon icon={faGripVertical} />
+                </button>
                 <button
                   type="button"
                   className={styles.removeAssignmentButton}

@@ -2,9 +2,9 @@ import * as leaveRequestRepository from '@/lib/repositories/leave-request.reposi
 import { AppError } from '@/lib/errors/AppError';
 import { reviewLeaveRequest } from '@/lib/repositories/leave-request.repository';
 
-export async function getAllLeaveRequests(limit = 100) {
+export async function getAllLeaveRequests(limit = 100, leaderUserId = null) {
   try {
-    const leaveRequests = await leaveRequestRepository.findAllLeaveRequests(limit);
+    const leaveRequests = await leaveRequestRepository.findAllLeaveRequests(limit, leaderUserId);
     return leaveRequests;
   } catch (error) {
     throw new AppError('Error al obtener novedades', 500);
@@ -63,8 +63,8 @@ export async function updateStatus(id, status) {
   }
 }
 
-export async function reviewRequest({ id, action, role, userId, userName }) {
-  const result = await reviewLeaveRequest({ id, action, role, userId, userName });
+export async function reviewRequest({ id, action, role, userId, userName, observation }) {
+  const result = await reviewLeaveRequest({ id, action, role, userId, userName, observation });
   if (result.error) throw new AppError(result.error, result.status);
   return result;
 }
@@ -84,12 +84,17 @@ export async function deleteLeaveRequest(id) {
   }
 }
 
-export async function getStatistics() {
+export async function getStatistics({ leaderUserId = null } = {}) {
   try {
-    const total = await leaveRequestRepository.countLeaveRequests();
-    const pending = await leaveRequestRepository.countLeaveRequestsByStatus('Pending');
-    const approved = await leaveRequestRepository.countLeaveRequestsByStatus('Approved');
-    const rejected = await leaveRequestRepository.countLeaveRequestsByStatus('Rejected');
+    const count = leaderUserId
+      ? (status) => leaveRequestRepository.countLeaveRequestsByLeader(leaderUserId, status)
+      : (status) => leaveRequestRepository.countLeaveRequestsByStatus(status);
+    const total = leaderUserId
+      ? await leaveRequestRepository.countLeaveRequestsByLeader(leaderUserId)
+      : await leaveRequestRepository.countLeaveRequests();
+    const pending = await count('Pending');
+    const approved = await count('Approved');
+    const rejected = await count('Rejected');
 
     return {
       total,

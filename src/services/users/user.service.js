@@ -14,6 +14,9 @@ export async function listUsers({ limit = 200, search = '', role = '' } = {}) {
 export async function createUserAccount(userData) {
   try {
     const user = await createUser(userData);
+    if (userData.employeeId !== undefined) {
+      await updateUser(user.id, { employeeId: userData.employeeId });
+    }
     return user;
   } catch (error) {
     if (error instanceof AppError) {

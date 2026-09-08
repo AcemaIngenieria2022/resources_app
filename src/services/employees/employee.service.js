@@ -75,6 +75,7 @@ export async function addEmployee(data) {
     department_id: data.department_id || null,
     position_id: data.position_id || null,
     role_id: roleId,
+    user_id: data.user_id || null,
     active: data.active !== false,
   });
 
@@ -105,6 +106,7 @@ export async function editEmployee(id, data) {
     department_id: data.department_id !== undefined ? data.department_id : emp.department_id,
     position_id: data.position_id !== undefined ? data.position_id : emp.position_id,
     role_id: data.role_id !== undefined ? data.role_id : emp.role_id,
+    user_id: data.user_id !== undefined ? data.user_id : emp.user_id,
     active: data.active !== undefined ? data.active : emp.active,
   });
 

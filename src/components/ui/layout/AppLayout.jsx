@@ -72,6 +72,7 @@ export default function AppLayout({ children }) {
   const displayUser = hydrated ? user : null;
   const normalizedRole = String(displayUser?.role || '').toLowerCase().replace(/[.\s]/g, '');
   const isHumanResources = normalizedRole === 'hr' || normalizedRole === 'rrhh';
+  const isApprover = normalizedRole === 'approver' || normalizedRole === 'leader';
   const isUserManagementRoute = pathname === '/users' || pathname === '/collaborators';
   const roleDescription = displayUser?.roleDescription || roleDescriptions[normalizedRole] || displayUser?.role || '';
   const userInitials = displayUser
@@ -114,10 +115,10 @@ export default function AppLayout({ children }) {
   }, [pathname, displayUser]);
 
   useEffect(() => {
-    if (hydrated && isHumanResources && isUserManagementRoute) {
+    if (hydrated && (isHumanResources || isApprover) && isUserManagementRoute) {
       router.replace('/dashboard');
     }
-  }, [hydrated, isHumanResources, isUserManagementRoute, router]);
+  }, [hydrated, isApprover, isHumanResources, isUserManagementRoute, router]);
 
   if (hideShell) {
     return <>{children}</>;
@@ -149,7 +150,7 @@ export default function AppLayout({ children }) {
               if (normalizedRole === 'supervisor') {
                 return item.label === 'Inicio' || item.label === 'Asistencia';
               }
-              return !isHumanResources || item.label !== 'Gestión de usuarios';
+              return !(isHumanResources || isApprover) || item.label !== 'Gestión de usuarios';
             })
             .map((item) => {
             if (item.children) {
