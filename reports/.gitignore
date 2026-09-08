@@ -1,0 +1,6 @@
+# Archivos generados de reportes (no incluir en git)
+*.pdf
+*.xlsx
+
+# Logs
+*.log

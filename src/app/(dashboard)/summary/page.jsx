@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
-import { downloadPdfGroupedByDepartmentImage, downloadXlsx } from '@/lib/export';
+import { downloadSummaryPdfDirectGrouped, downloadXlsx } from '@/lib/export';
 import styles from './page.module.css';
 
 const formatDate = (value) => {
@@ -32,7 +32,7 @@ const isLateArrival = (value) => {
 
 const isEarlyArrival = (value) => {
   const minutes = parseTimeMinutes(value);
-  return minutes !== null && minutes < 7 * 60 + 5;
+  return minutes !== null && minutes <= 7 * 60 + 5;
 };
 
 const getEntryTimeClass = (value) => {
@@ -167,7 +167,7 @@ export default function SummaryPage() {
         onDeviceChange={handleDeviceChange}
         onClearSearch={() => setSearch('')}
         onSubmit={handleSubmit}
-        onExportPdf={() => downloadPdfGroupedByDepartmentImage(tableRef.current, `summary-${date}.pdf`)}
+        onExportPdf={() => downloadSummaryPdfDirectGrouped(summary, `summary-${date}.pdf`, date)}
         onExportExcel={() => downloadXlsx(summary, `summary-${date}.xlsx`)}
       />
 
@@ -187,17 +187,18 @@ export default function SummaryPage() {
                 <th className={styles.summaryTh}>Cargo</th>
                 <th className={styles.summaryTh}>Ingreso</th>
                 <th className={styles.summaryTh}>Salida</th>
+                <th className={styles.summaryTh}>Novedad</th>
                 <th className={styles.summaryTh}>Registros</th>
               </tr>
             </thead>
             <tbody className={styles.summaryTbody}>
               {loading ? (
                 <tr>
-                  <td colSpan="6" className={styles.emptyState}>Cargando registros...</td>
+                  <td colSpan="7" className={styles.emptyState}>Cargando registros...</td>
                 </tr>
               ) : summary.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className={styles.emptyState}>No hay registros para esta fecha.</td>
+                  <td colSpan="7" className={styles.emptyState}>No hay registros para esta fecha.</td>
                 </tr>
               ) : (
                 sortedSummary.map((item) => (
@@ -210,6 +211,9 @@ export default function SummaryPage() {
                     </td>
                     <td className={getExitTimeClass(item.last_exit)}>
                       {item.last_exit ? formatDate(item.last_exit) : 'Sin registro'}
+                    </td>
+                    <td>
+                      {item.absence_reason ? <span className={styles.absenceNotice}>{item.absence_reason}</span> : 'Sin novedad'}
                     </td>
                     <td>
                       {item.record_times ? (

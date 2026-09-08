@@ -136,7 +136,8 @@ export default function AllRecordsPage() {
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+        <div className={styles.tableScrollContainer}>
+          <table className={styles.table}>
           <thead>
             <tr>
               <th>
@@ -248,7 +249,8 @@ export default function AllRecordsPage() {
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );

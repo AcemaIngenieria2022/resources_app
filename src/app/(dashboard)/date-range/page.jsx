@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import styles from './page.module.css';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
-import { downloadPdf, downloadXlsx } from '@/lib/export';
+import { downloadDateRangePdfDirect, downloadXlsx } from '@/lib/export';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -32,7 +32,7 @@ const isLateArrival = (value) => {
 
 const isEarlyArrival = (value) => {
   const minutes = parseTimeMinutes(value);
-  return minutes !== null && minutes < 7 * 60 + 5;
+  return minutes !== null && minutes <= 7 * 60 + 5;
 };
 
 const getEntryTimeClass = (value) => {
@@ -203,6 +203,22 @@ export default function DateRangePage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!fromDate || !toDate) {
+      setError('Selecciona una fecha de inicio y una fecha final.');
+      return;
+    }
+
+    if (fromDate > toDate) {
+      setError('La fecha de inicio no puede ser posterior a la fecha final.');
+      return;
+    }
+
+    if (employeeIds.length === 0) {
+      setError('Selecciona al menos un colaborador en la lista de nombres.');
+      return;
+    }
+
     await fetchRecords();
   };
 
@@ -238,7 +254,7 @@ export default function DateRangePage() {
             onSearchChange={(event) => setEmployeeSearch(event.target.value)}
             onClearSearch={() => setEmployeeSearch('')}
             onSubmit={handleSubmit}
-            onExportPdf={() => downloadPdf(JSON.stringify(records, null, 2), `date-range-${fromDate}-${toDate}.pdf`)}
+            onExportPdf={() => downloadDateRangePdfDirect(records, `date-range-${fromDate}-${toDate}.pdf`, { fromDate, toDate })}
             onExportExcel={() => downloadXlsx(records, `date-range-${fromDate}-${toDate}.xlsx`)}
             title="Resumen por rango de fechas"
           />

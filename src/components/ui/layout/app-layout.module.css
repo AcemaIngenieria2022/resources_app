@@ -19,7 +19,7 @@
   --gray-700: #334155;
   --gray-800: #1e293b;
   --gray-900: #0f172a;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 2px rgba(179, 11, 11, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --radius: 10px;
@@ -43,14 +43,15 @@
   z-index: 50;
   width: var(--sidebar-width);
   background: white;
-  border-right: 1px solid var(--gray-200);
+ 
   display: flex;
   flex-direction: column;
   transition: width var(--transition);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
   border-right: 3px solid #36bba761;
+    border-radius: 0px 20px 20px 0px;
 }
+ 
 
 .sidebar.collapsed {
   width: var(--sidebar-collapsed);
@@ -65,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--gray-100);
   min-height: var(--header-height);
   flex-shrink: 0;
@@ -139,6 +140,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  
 }
 
 .navLink {
@@ -271,6 +273,7 @@
   align-items: center;
   gap: 12px;
   overflow: hidden;
+  
 }
 
 .userAvatar {
@@ -329,6 +332,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
   transition: margin-left var(--transition);
 }
 
@@ -417,6 +421,11 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition);
+  min-width: 134px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logoutButton:hover {
@@ -425,11 +434,22 @@
   color: #dc2626;
 }
 
+.logoutButton:disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+.logoutLoader {
+  color: currentColor;
+  gap: 6px;
+}
+
 /* ===== Content ===== */
 .content {
   flex: 1;
   padding: 28px 32px;
   background: var(--gray-50);
+  min-width: 0;
 }
 
 /* ===== Scrollbar ===== */

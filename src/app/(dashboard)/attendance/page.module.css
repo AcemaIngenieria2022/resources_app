@@ -60,6 +60,33 @@
   box-shadow: var(--shadow);
 }
 
+.tableScrollContainer {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+  position: relative;
+  contain: layout paint;
+}
+
+.tableScrollContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -80,6 +107,12 @@
   color: var(--text);
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .sortHeaderButton {

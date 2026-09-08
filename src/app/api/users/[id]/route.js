@@ -13,6 +13,7 @@ export async function PATCH(request, context) {
       lastName: body.lastName,
       role: body.role,
       status: body.status,
+      employeeId: body.employeeId,
     });
 
     return Response.json(okResponse(updatedUser));

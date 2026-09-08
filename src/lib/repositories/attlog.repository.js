@@ -1,4 +1,4 @@
-import { query } from '@/lib/db/mysql';
+import { attlogQuery, query } from '@/lib/db/mysql';
 
 export async function findAttlog({ limit = 'all', date = '', fromDate = '', toDate = '', search = '', device = '', employeedID = '' , sortBy = 'authDateTime', sortDir = 'desc' } = {}) {
   const conditions = [];
@@ -76,56 +76,71 @@ export async function findAttlog({ limit = 'all', date = '', fromDate = '', toDa
     params.push(numericLimit);
   }
 
-  return query(sql, params);
+  return attlogQuery(sql, params);
 }
 
 export async function findAttlogSummary({ fromDate = '', toDate = '', search = '', employeedIDs = [] } = {}) {
-  const conditions = ['LOWER(a.diviceName) IN (?, ?)'];
+  const conditions = ["LOWER(diviceName) IN (?, ?)"];
   const params = ['interno', 'externo'];
 
   if (fromDate && toDate) {
-    conditions.push('a.authDate BETWEEN ? AND ?');
+    conditions.push('authDate BETWEEN ? AND ?');
     params.push(fromDate, toDate);
   } else if (fromDate) {
-    conditions.push('a.authDate >= ?');
+    conditions.push('authDate >= ?');
     params.push(fromDate);
   } else if (toDate) {
-    conditions.push('a.authDate <= ?');
+    conditions.push('authDate <= ?');
     params.push(toDate);
   }
 
   if (Array.isArray(employeedIDs) && employeedIDs.length > 0) {
     const placeholders = employeedIDs.map(() => '?').join(', ');
-    conditions.push(`a.employeedID IN (${placeholders})`);
+    conditions.push(`employeedID IN (${placeholders})`);
     params.push(...employeedIDs);
   }
 
   if (search) {
-    conditions.push('e.personName LIKE ?');
+    conditions.push('personName LIKE ?');
     params.push(`%${search}%`);
   }
 
   const sql = `
     SELECT
-      a.authDate,
+      authDate,
+      employeedID,
+      MAX(personName) AS personName,
+      MIN(CASE WHEN UPPER(diviceName) = 'EXTERNO' THEN authDateTime END) AS first_entry,
+      MAX(CASE WHEN UPPER(diviceName) = 'INTERNO' THEN authDateTime END) AS last_exit,
+      COUNT(DISTINCT CONCAT(TIME_FORMAT(authDateTime, '%H:%i'), '|', UPPER(diviceName))) AS record_count,
+      GROUP_CONCAT(DISTINCT CONCAT(TIME_FORMAT(authDateTime, '%H:%i'), '|', UPPER(diviceName)) ORDER BY authDateTime SEPARATOR '||') AS record_times
+    FROM attlog
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY authDate, employeedID
+    ORDER BY authDate ASC, personName ASC
+  `;
+
+  const attendanceRows = await attlogQuery(sql, params);
+  if (attendanceRows.length === 0) return [];
+
+  const employeeIDs = [...new Set(attendanceRows.map((row) => row.employeedID))];
+  const placeholders = employeeIDs.map(() => '?').join(', ');
+  const employees = await query(`
+    SELECT
       e.employeedID,
       e.personName,
       d.name AS department_name,
-      p.name AS position_name,
-      MIN(CASE WHEN UPPER(a.diviceName) = 'EXTERNO' THEN a.authDateTime END) AS first_entry,
-      MAX(CASE WHEN UPPER(a.diviceName) = 'INTERNO' THEN a.authDateTime END) AS last_exit,
-      COUNT(*) AS record_count,
-      GROUP_CONCAT(CONCAT(TIME_FORMAT(a.authDateTime, '%H:%i'), '|', UPPER(a.diviceName)) ORDER BY a.authDateTime SEPARATOR '||') AS record_times
-    FROM attlog a
-    JOIN employees e ON e.employeedID = a.employeedID AND e.active = 1
+      p.name AS position_name
+    FROM employees e
     LEFT JOIN departments d ON e.department_id = d.id
     LEFT JOIN positions p ON e.position_id = p.id
-    WHERE ${conditions.join(' AND ')}
-    GROUP BY a.authDate, a.employeedID
-    ORDER BY a.authDate ASC, e.personName ASC
-  `;
+    WHERE e.active = 1 AND e.employeedID IN (${placeholders})
+  `, employeeIDs);
+  const employeeByID = new Map(employees.map((employee) => [String(employee.employeedID), employee]));
 
-  return query(sql, params);
+  return attendanceRows
+    .map((row) => ({ ...row, ...employeeByID.get(String(row.employeedID)) }))
+    .filter((row) => employeeByID.has(String(row.employeedID)));
 }
 
 export default {

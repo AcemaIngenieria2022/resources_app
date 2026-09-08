@@ -7,4 +7,13 @@ export const databaseConfig = {
   dialect: 'mysql',
 };
 
+export const attlogDatabaseConfig = {
+  host: process.env.ATTLOG_DB_HOST || databaseConfig.host,
+  port: process.env.ATTLOG_DB_PORT || databaseConfig.port,
+  user: process.env.ATTLOG_DB_USER || databaseConfig.user,
+  password: process.env.ATTLOG_DB_PASSWORD ?? databaseConfig.password,
+  name: process.env.ATTLOG_DB_NAME || databaseConfig.name,
+  dialect: 'mysql',
+};
+
 export default databaseConfig;

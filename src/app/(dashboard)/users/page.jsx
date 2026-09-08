@@ -88,6 +88,19 @@ const buildSelectOptions = (options, selectedValue) =>
     )
     .join('');
 
+const bindPasswordToggle = (inputId, buttonId) => {
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  if (!input || !button) return;
+
+  button.addEventListener('click', () => {
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    button.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    button.setAttribute('title', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  });
+};
+
 // SweetAlert Form
 const showUserForm = async ({ mode, user = {} }) => {
   const email = escapeHtml(user.email || '');
@@ -97,37 +110,39 @@ const showUserForm = async ({ mode, user = {} }) => {
   const status = normalizeStatus((user.status ?? user.active) || 'active');
 
   const html = `
-    <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0;">
-      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+    <div style="display:flex;flex-direction:column;gap:16px;padding:1px 0;">
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-envelope" style="color:#94a3b8;"></i>
-        <input id="swal-user-email" class="swal2-input" placeholder="Email" value="${email}" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+        <input id="swal-user-email" name="new-user-email" autocomplete="off" class="swal2-input" placeholder="Email" value="${email}" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
       </div>
-      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-user" style="color:#94a3b8;"></i>
-        <input id="swal-user-first-name" class="swal2-input" placeholder="Nombre" value="${firstName}" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+        <input id="swal-user-first-name" name="new-user-first-name" autocomplete="off" class="swal2-input" placeholder="Nombre" value="${firstName}" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
       </div>
-      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-user" style="color:#94a3b8;"></i>
-        <input id="swal-user-last-name" class="swal2-input" placeholder="Apellido" value="${lastName}" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+        <input id="swal-user-last-name" name="new-user-last-name" autocomplete="off" class="swal2-input" placeholder="Apellido" value="${lastName}" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
       </div>
-      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-user-cog" style="color:#94a3b8;"></i>
-        <select id="swal-user-role" class="swal2-select" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">${buildSelectOptions(roleOptions, role)}</select>
+        <select id="swal-user-role" class="swal2-select" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">${buildSelectOptions(roleOptions, role)}</select>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
         <i class="fas fa-check-circle" style="color:#94a3b8;"></i>
-        <select id="swal-user-status" class="swal2-select" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">${buildSelectOptions(statusOptions, status)}</select>
+        <select id="swal-user-status" class="swal2-select" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">${buildSelectOptions(statusOptions, status)}</select>
       </div>
       ${
         mode === 'create'
           ? `
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
           <i class="fas fa-lock" style="color:#94a3b8;"></i>
-          <input id="swal-user-password" type="password" class="swal2-input" placeholder="Contraseña" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+          <input id="swal-user-password" type="password" class="swal2-input" placeholder="Contraseña" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
+          <button type="button" id="toggle-user-password" class="password-toggle" aria-label="Mostrar contraseña" title="Mostrar contraseña">&#128065;</button>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
           <i class="fas fa-lock" style="color:#94a3b8;"></i>
-          <input id="swal-user-password-repeat" type="password" class="swal2-input" placeholder="Repetir contraseña" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+          <input id="swal-user-password-repeat" type="password" class="swal2-input" placeholder="Repetir contraseña" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
+          <button type="button" id="toggle-user-password-repeat" class="password-toggle" aria-label="Mostrar contraseña" title="Mostrar contraseña">&#128065;</button>
         </div>
         `
           : ''
@@ -142,11 +157,20 @@ const showUserForm = async ({ mode, user = {} }) => {
     showCancelButton: true,
     confirmButtonText: mode === 'create' ? 'Crear' : 'Guardar',
     cancelButtonText: 'Cancelar',
-    width: '520px',
+    width: '480px',
     customClass: {
       confirmButton: 'swal2-confirm',
       cancelButton: 'swal2-cancel',
-      popup: 'swal2-popup-custom'
+      popup: 'swal2-popup-custom',
+      container: 'user-modal-container'
+    },
+    didOpen: () => {
+      if (mode === 'create') {
+        const emailInput = document.getElementById('swal-user-email');
+        if (emailInput) emailInput.value = '';
+        bindPasswordToggle('swal-user-password', 'toggle-user-password');
+        bindPasswordToggle('swal-user-password-repeat', 'toggle-user-password-repeat');
+      }
     },
     preConfirm: () => {
       const emailValue = document.getElementById('swal-user-email')?.value.trim();
@@ -202,6 +226,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
+  const [searchReadOnly, setSearchReadOnly] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -328,6 +353,7 @@ export default function UserManagementPage() {
 
   // Event Handlers
   const handleOpenCreate = async () => {
+    setSearch('');
     try {
       const values = await showUserForm({ mode: 'create' });
       if (values) {
@@ -395,15 +421,17 @@ export default function UserManagementPage() {
       const { value: values } = await Swal.fire({
         title: `Restablecer contraseña`,
         html: `
-          <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0;">
-            <p style="text-align:center;color:#64748b;font-size:14px;">${user.email}</p>
-            <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0;">
+            <p style="text-align:center;color:#64748b;font-size:13px;">${user.email}</p>
+            <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;padding:5px 8px;border-radius:8px;">
               <i class="fas fa-lock" style="color:#94a3b8;"></i>
-              <input id="swal-new-password" type="password" class="swal2-input" placeholder="Nueva contraseña" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+              <input id="swal-new-password" type="password" class="swal2-input" placeholder="Nueva contraseña" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
+              <button type="button" id="toggle-new-password" class="password-toggle" aria-label="Mostrar contraseña" title="Mostrar contraseña">&#128065;</button>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+            <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;padding:5px 8px;border-radius:8px;">
               <i class="fas fa-lock" style="color:#94a3b8;"></i>
-              <input id="swal-repeat-password" type="password" class="swal2-input" placeholder="Repetir contraseña" style="flex:1;border:none;background:transparent;padding:8px 0;margin:0;">
+              <input id="swal-repeat-password" type="password" class="swal2-input" placeholder="Repetir contraseña" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
+              <button type="button" id="toggle-repeat-password" class="password-toggle" aria-label="Mostrar contraseña" title="Mostrar contraseña">&#128065;</button>
             </div>
           </div>
         `,
@@ -411,7 +439,14 @@ export default function UserManagementPage() {
         showCancelButton: true,
         confirmButtonText: 'Guardar',
         cancelButtonText: 'Cancelar',
-        width: '520px',
+        width: '480px',
+        customClass: {
+          container: 'user-modal-container',
+        },
+        didOpen: () => {
+          bindPasswordToggle('swal-new-password', 'toggle-new-password');
+          bindPasswordToggle('swal-repeat-password', 'toggle-repeat-password');
+        },
         preConfirm: () => {
           const newPassword = document.getElementById('swal-new-password')?.value || '';
           const repeatPassword = document.getElementById('swal-repeat-password')?.value || '';
@@ -506,7 +541,12 @@ export default function UserManagementPage() {
         <div className={styles.searchBox}>
           <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
           <input
-            type="text"
+            type="search"
+            id="records-filter"
+            name="records-filter"
+            autoComplete="off"
+            readOnly={searchReadOnly}
+            onFocus={() => setSearchReadOnly(false)}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por email, nombre o apellido..."
@@ -558,7 +598,8 @@ export default function UserManagementPage() {
 
       {/* Table */}
       <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+        <div className={styles.tableScrollContainer}>
+          <table className={styles.table}>
           <thead>
             <tr>
               <th>ID</th>
@@ -567,7 +608,7 @@ export default function UserManagementPage() {
               <th>Rol</th>
               <th>Estado</th>
               <th>Creado</th>
-              <th>Acciones</th>
+              <th className={styles.actionsHeader}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -677,7 +718,8 @@ export default function UserManagementPage() {
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </main>
   );

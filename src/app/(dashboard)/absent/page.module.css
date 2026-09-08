@@ -1,0 +1,18 @@
+.pageContainer { width: 100%; padding: 14px 0; }
+.header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #36bba7; margin: 0 0 10px; }
+.title { margin: 0; font-size: 28px; color: #102a43; }
+.description { margin: 10px 0 0; color: #5f6f81; max-width: 720px; line-height: 1.6; }
+.meta { font-size: 14px; color: #5f6f81; font-weight: 600; }
+.tableWrapper { background: #fff; border: 1px solid #e2e8f0; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 45px rgba(14, 34, 77, 0.08); }
+.tableScrollContainer { overflow-x: auto; max-height: 600px; overflow-y: auto; position: relative; }
+.table { width: 100%; border-collapse: collapse; min-width: 860px; }
+.table th, .table td { padding: 7px 9px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #102a43; }
+.table th { position: sticky; top: 0; z-index: 2; background: #f8fafc; font-weight: 700; letter-spacing: 0.02em; }
+.sortHeaderButton { display: inline-flex; align-items: center; gap: 4px; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sortHeaderButton:hover { color: #36bba7; }
+.departmentRow td { background: #d7f3ef; color: #168f80; font-weight: 700; }
+.table tbody tr:not(.departmentRow):hover td { background: #f1f5f9; }
+.emptyRow { padding: 24px; text-align: center; color: #5f6f81; }
+.error { margin-bottom: 20px; padding: 16px 18px; border: 1px solid #f1a8a8; background: #fff1f2; color: #842029; border-radius: 16px; }
+@media (max-width: 640px) { .header { flex-direction: column; } .title { font-size: 22px; } }

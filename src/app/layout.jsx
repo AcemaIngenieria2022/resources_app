@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Attendance System',
+  title: 'Portal Vanta - RRHH',
   description: 'Authentication flow for the attendance management system',
 };
 

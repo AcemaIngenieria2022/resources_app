@@ -1,12 +1,32 @@
 .dashboardMain {
-  padding: 32px;
+  width: 100%;
+  padding: 4px 0 24px;
+  box-sizing: border-box;
 }
 
 .dashboardTitle {
-  font-size: 2rem;
-  margin-bottom: 16px;
+  margin: 0 0 4px;
+  font-size: 1.7rem;
 }
 
 .dashboardText {
+  margin: 0;
   color: #475569;
+  font-size: 0.78rem;
+}
+
+.dashboardCards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1000px) {
+  .dashboardCards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .dashboardMain { padding: 4px 0 18px; }
+  .dashboardCards { grid-template-columns: 1fr; }
 }

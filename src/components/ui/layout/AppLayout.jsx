@@ -9,12 +9,14 @@ import {
   faChartLine,
   faCalendar,
   faUserXmark,
-  faPlus,
   faPenToSquare,
   faUsers,
   faCalendarCheck,
   faChevronLeft,
   faChevronRight,
+  faBuilding,
+  faUser,
+  faClipboardList,
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuthContext } from '@/context/AuthContext';
 import styles from './app-layout.module.css';
@@ -26,42 +28,96 @@ const navItems = [
     icon: faCalendarCheck,
     children: [
           { href: '/summary', label: 'Diario', icon: faChartLine },
+          { href: '/absent', label: 'Ausentes', icon: faUserXmark },
       { href: '/attendance', label: 'Dispositivos', icon: faTable },
   
       { href: '/date-range', label: 'Rango', icon: faCalendar },
     ],
   },
-  { href: '/absent', label: 'Ausentes', icon: faUserXmark },
-  { href: '/absence/new', label: 'Registrar Ausencia', icon: faPlus },
-  { href: '/absence/manage', label: 'Administrar Novedades', icon: faPenToSquare },
-  { href: '/users', label: 'Gestión de usuarios', icon: faUsers },
+  {
+    label: 'Novedades',
+    icon: faClipboardList,
+    children: [
+      { href: '/absence/manage', label: 'Administrar', icon: faPenToSquare },
+      { href: '/leave-requests', label: 'Validaciones', icon: faClipboardList },
+    ],
+  },
+  {
+    label: 'Gestión de usuarios',
+    icon: faUsers,
+    children: [
+      { href: '/collaborators', label: 'Colaboradores', icon: faBuilding },
+      { href: '/users', label: 'Cuentas', icon: faUser },
+    ],
+  },
 ];
+
+const roleDescriptions = {
+  admin: 'Administrador',
+  hr: 'RR.HH.',
+  rrhh: 'RR.HH.',
+  supervisor: 'Supervisor',
+  approver: 'Aprobador',
+  user: 'Usuario',
+};
 
 export default function AppLayout({ children }) {
   const [expanded, setExpanded] = useState(false);
-  const [openSubmenu, setOpenSubmenu] = useState('');
+  const [openSubmenus, setOpenSubmenus] = useState([]);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, hydrated } = useAuthContext();
-  const hideShell = pathname === '/login';
+  const hideShell = pathname === '/login' || pathname === '/registrar-novedad';
   const displayUser = hydrated ? user : null;
+  const normalizedRole = String(displayUser?.role || '').toLowerCase().replace(/[.\s]/g, '');
+  const isHumanResources = normalizedRole === 'hr' || normalizedRole === 'rrhh';
+  const isUserManagementRoute = pathname === '/users' || pathname === '/collaborators';
+  const roleDescription = displayUser?.roleDescription || roleDescriptions[normalizedRole] || displayUser?.role || '';
   const userInitials = displayUser
     ? `${displayUser.firstName?.[0] ?? ''}${displayUser.lastName?.[0] ?? ''}`.toUpperCase() || 'I'
     : '';
-  const currentPage = navItems.find((item) => item.href === pathname)?.label || 'Panel';
+  const currentItem = navItems.find(
+    (item) => item.href === pathname || item.children?.some((child) => child.href === pathname)
+  );
+  const currentPage = currentItem?.children?.find((child) => child.href === pathname)?.label
+    || currentItem?.label
+    || 'Panel';
   const toggleIcon = expanded ? faChevronLeft : faChevronRight;
 
   const handleLogout = () => {
-    logout();
-    router.push('/login');
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    window.setTimeout(() => {
+      logout();
+      router.push('/loading?next=/login');
+    }, 500);
   };
   // Ensure Hooks are always called in the same order by placing
   // the effect before any early return.
   useEffect(() => {
     // auto-open submenu if current path matches a child
     const match = navItems.find((item) => item.children && item.children.some((c) => c.href === pathname));
-    if (match) setOpenSubmenu(match.label);
+    if (!match) return undefined;
+    const timer = window.setTimeout(() => {
+      setOpenSubmenus((current) => current.includes(match.label) ? current : [...current, match.label]);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [pathname]);
+
+  useEffect(() => {
+    if (pathname === '/login' || !displayUser) {
+      const timer = window.setTimeout(() => setIsLoggingOut(false), 0);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [pathname, displayUser]);
+
+  useEffect(() => {
+    if (hydrated && isHumanResources && isUserManagementRoute) {
+      router.replace('/dashboard');
+    }
+  }, [hydrated, isHumanResources, isUserManagementRoute, router]);
 
   if (hideShell) {
     return <>{children}</>;
@@ -88,16 +144,27 @@ export default function AppLayout({ children }) {
         </div>
 
         <nav className={styles.nav}>
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => {
+              if (normalizedRole === 'supervisor') {
+                return item.label === 'Inicio' || item.label === 'Asistencia';
+              }
+              return !isHumanResources || item.label !== 'Gestión de usuarios';
+            })
+            .map((item) => {
             if (item.children) {
-              const isOpen = openSubmenu === item.label;
+              const isOpen = openSubmenus.includes(item.label);
               return (
                 <div key={item.label} className={styles.subMenu}>
                   <button
                     type="button"
                     className={`${styles.navLink} ${isOpen ? styles.active : ''} ${styles.subMenuToggle}`}
                     aria-expanded={isOpen}
-                    onClick={() => setOpenSubmenu((s) => (s === item.label ? '' : item.label))}
+                    onClick={() => setOpenSubmenus((current) => (
+                      current.includes(item.label)
+                        ? current.filter((label) => label !== item.label)
+                        : [...current, item.label]
+                    ))}
                   >
                     <span className={styles.navIcon}>
                       <FontAwesomeIcon icon={item.icon} />
@@ -145,7 +212,7 @@ export default function AppLayout({ children }) {
               <div className={styles.userName}>
                 {displayUser ? `${displayUser.firstName} ${displayUser.lastName}`.trim() : 'Cargando...'}
               </div>
-              <div className={styles.userRole}>{displayUser ? displayUser.role : ''}</div>
+              <div className={styles.userRole}>{roleDescription}</div>
             </div>
           </div>
           <button
@@ -171,11 +238,11 @@ export default function AppLayout({ children }) {
                   <div className={styles.headerAvatar}>{userInitials}</div>
                   <div className={styles.headerUserInfo}>
                     <div className={styles.headerUserName}>{`${displayUser.firstName} ${displayUser.lastName}`.trim()}</div>
-                    <div className={styles.headerUserMeta}>{displayUser.role}</div>
+                    <div className={styles.headerUserMeta}>{roleDescription}</div>
                   </div>
                 </div>
-                <button className={styles.logoutButton} type="button" onClick={handleLogout}>
-                  Cerrar sesión
+                <button className={styles.logoutButton} type="button" onClick={handleLogout} disabled={isLoggingOut}>
+                  {isLoggingOut ? 'Cerrando...' : 'Cerrar sesión'}
                 </button>
               </>
             ) : (

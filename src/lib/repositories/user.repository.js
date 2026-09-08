@@ -53,8 +53,8 @@ async function selectUserColumns(columnList, whereClause, params) {
 async function selectUserByEmail(email) {
   try {
     const rows = await selectUserColumns(
-      'users.id, users.email, users.password, users.role, users.first_name, users.last_name, COALESCE(us.name, users.status) AS status, users.status_id, users.created_at',
-      'LEFT JOIN user_statuses us ON users.status_id = us.id WHERE users.email = ? LIMIT 1',
+      'users.id, users.email, users.password, users.role, roles.description AS role_description, users.first_name, users.last_name, COALESCE(us.name, users.status) AS status, users.status_id, users.created_at',
+      'LEFT JOIN user_statuses us ON users.status_id = us.id LEFT JOIN roles ON roles.name = users.role WHERE users.email = ? LIMIT 1',
       [email]
     );
 
@@ -117,9 +117,11 @@ export async function findUsers({ limit = 100, search = '', role = '' } = {}) {
     const rows = await query(
       `
         SELECT users.id, users.email, users.role, users.first_name, users.last_name,
+          e.id AS employee_id, e.employeedID, e.personName AS employee_name,
           COALESCE(us.name, users.status) AS status, users.status_id, users.created_at
         FROM users
         LEFT JOIN user_statuses us ON users.status_id = us.id
+        LEFT JOIN employees e ON e.user_id = users.id
         ${whereClause}
         ORDER BY users.id ASC
         LIMIT ?
@@ -188,6 +190,20 @@ export async function updateUser(id, fields = {}) {
   } else if (fields.active !== undefined) {
     sets.push('active = ?');
     params.push(Number(fields.active));
+  }
+
+  if (fields.employeeId !== undefined) {
+    const employeeId = fields.employeeId ? Number(fields.employeeId) : null;
+    if (employeeId !== null) {
+      const employeeRows = await query('SELECT id FROM employees WHERE id = ? LIMIT 1', [employeeId]);
+      if (!employeeRows?.length) throw new AppError('Empleado no encontrado', 404);
+      const linkedRows = await query('SELECT id FROM employees WHERE id = ? AND user_id IS NOT NULL AND user_id <> ? LIMIT 1', [employeeId, Number(id)]);
+      if (linkedRows?.length) throw new AppError('El empleado ya está relacionado con otro usuario', 409);
+    }
+    await query('UPDATE employees SET user_id = NULL WHERE user_id = ?', [Number(id)]);
+    if (employeeId !== null) {
+      await query('UPDATE employees SET user_id = ? WHERE id = ?', [Number(id), employeeId]);
+    }
   }
 
   if (!sets.length) {
