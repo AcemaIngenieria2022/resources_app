@@ -448,14 +448,14 @@
 
 .leadershipGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 18px;
   margin-top: 22px;
 }
 
 .leaderCard {
   position: relative;
-  padding: 14px;
+  padding: 14px 46px 14px 14px;
   border: 1px solid #dbe8e8;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.88);
@@ -471,6 +471,17 @@
   border-radius: 12px;
   background: #e8faf6;
   border: 1px solid #bce9e2;
+  min-width: 0;
+}
+
+.nodeActions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
 }
 
 .leaderAvatar,
@@ -484,10 +495,26 @@
 }
 
 .leaderAvatar {
-  width: 38px;
-  height: 38px;
-  background: #168f80;
-  color: #fff;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: #168f80;
+}
+
+.leaderAvatarButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.leaderAvatarButton:hover .leaderAvatar,
+.leaderAvatarButton:focus-visible .leaderAvatar {
+  color: #0f7a6d;
 }
 
 .leaderNode h3 {
@@ -541,44 +568,60 @@
 }
 
 .addPeopleButton {
-  display: block;
-  margin: 10px auto 0;
-  padding: 5px 10px;
-  border: 1px solid #bce9e2;
-  border-radius: 8px;
-  background: #f7fffd;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: #168f80;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
 }
 
-.addPeopleButton:hover {
-  border-color: #36bba7;
-  background: #e8faf6;
+.addPeopleButton:hover,
+.addPeopleButton:focus-visible {
+  color: #0f7a6d;
+  background: transparent;
 }
 
 .removeAssignmentButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
-  padding: 4px 7px;
-  border: 1px solid #f1c5c5;
-  border-radius: 7px;
-  background: #fff8f8;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: #b42318;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 700;
 }
 
-.removeAssignmentButton:hover {
-  border-color: #e57373;
-  background: #fff1f2;
+.removeAssignmentButton:hover,
+.removeAssignmentButton:focus-visible {
+  color: #8b1d1d;
+  background: transparent;
+}
+
+.smallIcon {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .collaboratorNodes {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: 22px 12px;
   margin-top: 4px;
   padding: 22px 8px 0;
@@ -635,7 +678,7 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
-  padding: 8px 9px;
+  padding: 8px 36px 8px 9px;
   border: 1px solid #edf2f4;
   border-radius: 10px;
   background: #fff;
@@ -643,6 +686,21 @@
 
 .collaboratorNode {
   position: relative;
+  width: 100%;
+}
+
+.collaboratorInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.collaboratorActions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .assignmentList {
@@ -658,6 +716,24 @@
   color: #64748b;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.assignmentSearch {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #dbe8e8;
+  border-radius: 10px;
+  background: #fff;
+  color: #102a43;
+  font-size: 13px;
+  outline: none;
+}
+
+.assignmentSearch:focus {
+  border-color: #36bba7;
+  box-shadow: 0 0 0 3px rgba(54, 187, 167, 0.12);
 }
 
 .assignmentOption {
@@ -699,11 +775,92 @@
 }
 
 .collaboratorAvatar {
-  width: 28px;
-  height: 28px;
-  background: #eaf0f8;
-  color: #49627d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #168f80;
+  font-size: 12px;
+}
+
+.collaboratorAvatarButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.collaboratorAvatarButton:hover .collaboratorAvatar,
+.collaboratorAvatarButton:focus-visible .collaboratorAvatar {
+  color: #0f7a6d;
+  background: transparent;
+}
+
+.employeeDetailsPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.employeeDetailsHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf2f4;
+}
+
+.employeeDetailsHeader strong {
+  display: block;
+  color: #102a43;
+  font-size: 16px;
+}
+
+.employeeDetailsHeader small {
+  display: block;
+  color: #64748b;
   font-size: 11px;
+  margin-top: 2px;
+}
+
+.employeeDetailsAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: transparent;
+  color: #168f80;
+  font-weight: 800;
+}
+
+.employeeDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detailLabel {
+  display: block;
+  margin-bottom: 5px;
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.employeeDetailsGrid strong {
+  display: block;
+  color: #102a43;
+  font-size: 13px;
 }
 
 .collaboratorNode strong,
@@ -760,6 +917,16 @@
     padding: 12px;
   }
 
+  .leaderCard {
+    padding-right: 12px;
+  }
+
+  .nodeActions {
+    position: static;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+
   .mapHeader,
   .unassignedHeading {
     flex-direction: column;
@@ -767,6 +934,11 @@
 
   .mapStats {
     width: 100%;
+  }
+
+  .leadershipGrid,
+  .collaboratorNodes {
+    grid-template-columns: 1fr;
   }
 
   .mapStats div {

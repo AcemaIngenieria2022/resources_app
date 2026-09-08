@@ -34,7 +34,7 @@ La aplicación usa el patrón App Router de Next.js y separa claramente:
 - MySQL con `mysql2/promise`
 - Servicios con lógica de negocio y validaciones
 
-### Utilidades
+### Utilidades - !importante
 - ExcelJS, XLSX para exportación
 - jsPDF, html2canvas, pdfkit, puppeteer-core para reportes PDF
 - nodemailer para envío de correos
@@ -634,11 +634,11 @@ npm run reports:schedule
 
 ---
 
-## 20. Nota final
+## 21. Repositorio de github
 
-Este documento fue pensado como guía de onboarding para otro desarrollador. Si se desea, el siguiente paso ideal es complementar esta documentación con:
 
-- un mapa detallado por cada módulo funcional
-- una guía de base de datos con diagramas
-- una lista de endpoints y ejemplos de requests/responses
-- una guía de despliegue para producción
+AcemaIngenieria2022
+Acema2026.s
+
+## 22. Fin del documento
+

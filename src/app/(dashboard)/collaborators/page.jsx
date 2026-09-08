@@ -16,6 +16,8 @@ import {
   faTimes,
   faFileAlt,
   faSitemap,
+  faUserPlus,
+  faUserMinus,
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './page.module.css';
 
@@ -732,6 +734,7 @@ export default function CollaboratorsAdminPage() {
           leaders={leaders}
           onAssignEmployees={handleAssignEmployees}
           onRemoveEmployee={handleUnassignEmployee}
+          onEditEmployee={handleEditEmployee}
         />
       )}
 
@@ -784,10 +787,12 @@ export default function CollaboratorsAdminPage() {
   );
 }
 
-function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee }) {
+function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee, onEditEmployee }) {
   const [activeLeader, setActiveLeader] = useState(null);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const leadersByEmployeeId = new Map(leaders.map((leader) => [leader.employee_id, leader]));
   const rootLeaders = leaders.filter((leader) => {
     const employee = employees.find((item) => item.id === leader.employee_id);
@@ -869,6 +874,7 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
               path={new Set()}
               onAddPeople={openAssignment}
               onRemoveEmployee={onRemoveEmployee}
+              onSelectEmployee={setSelectedEmployee}
             />
           ))}
         </div>
@@ -888,7 +894,15 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
           <div className={styles.unassignedList}>
             {withoutLeader.map((employee) => (
               <div className={styles.unassignedItem} key={employee.id}>
-                <div className={styles.collaboratorAvatar}>{employee.personName?.charAt(0) || 'C'}</div>
+                <button
+                  type="button"
+                  className={styles.collaboratorAvatarButton}
+                  onClick={() => setSelectedEmployee(employee)}
+                  aria-label={`Ver información de ${employee.personName}`}
+                  title={`Ver información de ${employee.personName}`}
+                >
+                  <span className={styles.collaboratorAvatar}>{employee.personName?.charAt(0) || 'C'}</span>
+                </button>
                 <div><strong>{employee.personName}</strong><span>{employee.department_name || 'Sin departamento'}</span></div>
               </div>
             ))}
@@ -896,25 +910,95 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
         </div>
       )}
       <Modal
+        isOpen={Boolean(selectedEmployee)}
+        title={selectedEmployee ? selectedEmployee.personName : 'Información del colaborador'}
+        onClose={() => setSelectedEmployee(null)}
+      >
+        {selectedEmployee && (
+          <div className={styles.employeeDetailsPanel}>
+            <div className={styles.employeeDetailsHeader}>
+              <div className={styles.employeeDetailsAvatar}>{selectedEmployee.personName?.charAt(0) || 'C'}</div>
+              <div>
+                <strong>{selectedEmployee.personName}</strong>
+                <small>{selectedEmployee.position_name || 'Colaborador'} · {selectedEmployee.department_name || 'Sin departamento'}</small>
+              </div>
+            </div>
+            <div className={styles.employeeDetailsGrid}>
+              <div>
+                <span className={styles.detailLabel}>Cargo</span>
+                <strong>{selectedEmployee.position_name || 'Sin cargo'}</strong>
+              </div>
+              <div>
+                <span className={styles.detailLabel}>Departamento</span>
+                <strong>{selectedEmployee.department_name || 'Sin departamento'}</strong>
+              </div>
+              <div>
+                <span className={styles.detailLabel}>Rol</span>
+                <strong>{selectedEmployee.role_name || 'Sin rol'}</strong>
+              </div>
+              <div>
+                <span className={styles.detailLabel}>Líder</span>
+                <strong>{selectedEmployee.leader_name || 'Sin líder'}</strong>
+              </div>
+              {selectedEmployee.document_number && (
+                <div>
+                  <span className={styles.detailLabel}>Documento</span>
+                  <strong>{selectedEmployee.document_number}</strong>
+                </div>
+              )}
+            </div>
+            <div className={styles.formActions}>
+              <button
+                type="button"
+                className={styles.formSubmit}
+                onClick={() => {
+                  const employee = selectedEmployee;
+                  setSelectedEmployee(null);
+                  onEditEmployee(employee);
+                }}
+              >
+                <FontAwesomeIcon icon={faEdit} />
+                Editar
+              </button>
+              <button type="button" className={styles.formCancel} onClick={() => setSelectedEmployee(null)}>Cerrar</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal
         isOpen={Boolean(activeLeader)}
         title={activeLeader ? `Personas a cargo de ${activeLeader.personName}` : 'Asignar personas'}
         onClose={() => setActiveLeader(null)}
       >
         <p className={styles.assignmentHint}>Marca las personas que deben depender directamente de este líder. Desmarcar una persona la deja sin líder.</p>
+        <input
+          type="text"
+          className={styles.assignmentSearch}
+          value={employeeSearch}
+          onChange={(event) => setEmployeeSearch(event.target.value)}
+          placeholder="Buscar colaborador por nombre o apellido"
+          aria-label="Buscar colaborador por nombre o apellido"
+        />
         <div className={styles.assignmentList}>
-          {employees.filter((employee) => employee.id !== activeLeader?.employee_id).map((employee) => (
-            <label className={styles.assignmentOption} key={employee.id}>
-              <input
-                type="checkbox"
-                checked={selectedEmployeeIds.includes(employee.id)}
-                onChange={() => toggleEmployee(employee.id)}
-              />
-              <span>
-                <strong>{employee.personName}</strong>
-                <small>{employee.department_name || 'Sin departamento'} · {employee.position_name || 'Sin cargo'}</small>
-              </span>
-            </label>
-          ))}
+          {employees
+            .filter((employee) => employee.id !== activeLeader?.employee_id)
+            .filter((employee) => {
+              const text = `${employee.personName || ''} ${employee.last_name || ''}`.toLowerCase();
+              return text.includes(employeeSearch.toLowerCase());
+            })
+            .map((employee) => (
+              <label className={styles.assignmentOption} key={employee.id}>
+                <input
+                  type="checkbox"
+                  checked={selectedEmployeeIds.includes(employee.id)}
+                  onChange={() => toggleEmployee(employee.id)}
+                />
+                <span>
+                  <strong>{employee.personName}</strong>
+                  <small>{employee.department_name || 'Sin departamento'} · {employee.position_name || 'Sin cargo'}</small>
+                </span>
+              </label>
+            ))}
         </div>
         <div className={styles.formActions}>
           <button type="button" className={styles.formCancel} onClick={() => setActiveLeader(null)}>Cancelar</button>
@@ -927,15 +1011,46 @@ function LeadershipMap({ employees, leaders, onAssignEmployees, onRemoveEmployee
   );
 }
 
-function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeople, onRemoveEmployee }) {
+function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeople, onRemoveEmployee, onSelectEmployee }) {
   const nextPath = new Set(path);
   nextPath.add(leader.id);
   const directReports = employees.filter((employee) => employee.leader_id === leader.id);
+  const leaderEmployee = employees.find((employee) => employee.id === leader.employee_id) || leader;
 
   return (
     <article className={styles.leaderCard}>
+      <div className={styles.nodeActions}>
+        {path.size > 0 && (
+          <button
+            type="button"
+            className={styles.removeAssignmentButton}
+            onClick={() => onRemoveEmployee(leader.employee_id)}
+            aria-label="Quitar de este líder"
+            title="Quitar de este líder"
+          >
+            <FontAwesomeIcon icon={faUserMinus} className={styles.smallIcon} />
+          </button>
+        )}
+        <button
+          type="button"
+          className={styles.addPeopleButton}
+          onClick={() => onAddPeople(leader)}
+          aria-label="Agregar personas"
+          title="Agregar personas"
+        >
+          <FontAwesomeIcon icon={faUserPlus} className={styles.smallIcon} />
+        </button>
+      </div>
       <div className={styles.leaderNode}>
-        <div className={styles.leaderAvatar}>{leader.personName?.charAt(0) || 'L'}</div>
+        <button
+          type="button"
+          className={styles.leaderAvatarButton}
+          onClick={() => onSelectEmployee(leaderEmployee)}
+          aria-label={`Ver información de ${leader.personName}`}
+          title={`Ver información de ${leader.personName}`}
+        >
+          <span className={styles.leaderAvatar}>{leader.personName?.charAt(0) || 'L'}</span>
+        </button>
         <div>
           <span className={styles.nodeKicker}>Líder aprobador</span>
           <h3>{leader.personName}</h3>
@@ -943,14 +1058,6 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
         </div>
         <span className={styles.memberCount}>{directReports.length}</span>
       </div>
-      {path.size > 0 && (
-        <button type="button" className={styles.removeAssignmentButton} onClick={() => onRemoveEmployee(leader.employee_id)}>
-          Quitar de este líder
-        </button>
-      )}
-      <button type="button" className={styles.addPeopleButton} onClick={() => onAddPeople(leader)}>
-        + Agregar personas
-      </button>
       <div className={styles.connector} />
       <div className={styles.collaboratorNodes}>
         {directReports.length > 0 ? directReports.map((employee) => {
@@ -965,6 +1072,7 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
                   path={nextPath}
                   onAddPeople={onAddPeople}
                   onRemoveEmployee={onRemoveEmployee}
+                  onSelectEmployee={onSelectEmployee}
                 />
               </div>
             );
@@ -972,15 +1080,31 @@ function HierarchyNode({ leader, employees, leadersByEmployeeId, path, onAddPeop
 
           return (
             <div className={styles.collaboratorNode} key={employee.id}>
-              <div className={styles.collaboratorAvatar}>{employee.personName?.charAt(0) || 'C'}</div>
-              <div>
+              <button
+                type="button"
+                className={styles.collaboratorAvatarButton}
+                onClick={() => onSelectEmployee(employee)}
+                aria-label={`Ver información de ${employee.personName}`}
+                title={`Ver información de ${employee.personName}`}
+              >
+                <span className={styles.collaboratorAvatar}>{employee.personName?.charAt(0) || 'C'}</span>
+              </button>
+              <div className={styles.collaboratorInfo}>
                 <strong>{employee.personName}</strong>
                 <span>{employee.position_name || 'Colaborador'}</span>
                 <span className={styles.nodeDepartment}>{employee.department_name || 'Sin departamento'}</span>
               </div>
-              <button type="button" className={styles.removeAssignmentButton} onClick={() => onRemoveEmployee(employee.id)}>
-                Quitar
-              </button>
+              <div className={styles.collaboratorActions}>
+                <button
+                  type="button"
+                  className={styles.removeAssignmentButton}
+                  onClick={() => onRemoveEmployee(employee.id)}
+                  aria-label="Quitar asignación"
+                  title="Quitar asignación"
+                >
+                  <FontAwesomeIcon icon={faTrash} className={styles.smallIcon} />
+                </button>
+              </div>
             </div>
           );
         }) : (
