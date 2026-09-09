@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/mysql';
 
+// Repositorio para consultar, crear, editar y eliminar empleados y sus relaciones de liderazgo.
 export async function findAllEmployees(limit = 50) {
   return query(
     `

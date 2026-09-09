@@ -7,6 +7,7 @@ import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
 import { downloadPdf, downloadXlsx } from '@/lib/export';
 import styles from './page.module.css';
 
+// Devuelve la clase visual según el tipo de dispositivo para distinguir interno y externo en la tabla.
 const getDeviceCellClass = (device) => {
   const normalized = String(device ?? '').trim().toUpperCase();
   if (normalized === 'INTERNO') return styles.deviceInternal;
@@ -14,6 +15,7 @@ const getDeviceCellClass = (device) => {
   return styles.deviceOther;
 };
 
+// Asigna el color del texto para mantener consistente la identificación del dispositivo.
 const getDeviceTextColor = (device) => {
   const normalized = String(device ?? '').trim().toUpperCase();
   if (normalized === 'INTERNO') return '#16a34a';
@@ -21,6 +23,7 @@ const getDeviceTextColor = (device) => {
   return 'inherit';
 };
 
+// Página de registro completo de asistencia: muestra todos los registros del día con filtros, ordenamiento y exportación.
 export default function AllRecordsPage() {
   const [records, setRecords] = useState([]);
   const [limit, setLimit] = useState('all');
@@ -32,6 +35,7 @@ export default function AllRecordsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Carga la lista de registros desde la API de attlog aplicando los filtros actuales.
   const fetchRecords = async (
     selectedDevice = device,
     selectedSortBy = sortBy,
@@ -89,16 +93,19 @@ export default function AllRecordsPage() {
     return () => clearTimeout(timer);
   }, [search, date, device, limit, sortBy, sortDir]);
 
+  // Ejecuta la búsqueda manual cuando el usuario aplica el formulario de filtros.
   const handleSubmit = (event) => {
     event.preventDefault();
     fetchRecords(device, sortBy, sortDir);
   };
 
+  // Cambia el filtro de dispositivo y recarga los registros con ese criterio.
   const handleDeviceChange = (nextDevice) => {
     setDevice(nextDevice);
     fetchRecords(nextDevice, sortBy, sortDir);
   };
 
+  // Alterna la dirección del orden por una columna específica.
   const handleSort = (column) => {
     const nextDir = sortBy === column && sortDir === 'asc' ? 'desc' : 'asc';
     setSortBy(column);

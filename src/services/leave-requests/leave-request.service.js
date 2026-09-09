@@ -2,6 +2,7 @@ import * as leaveRequestRepository from '@/lib/repositories/leave-request.reposi
 import { AppError } from '@/lib/errors/AppError';
 import { reviewLeaveRequest } from '@/lib/repositories/leave-request.repository';
 
+// Expone la lista de solicitudes al resto de la aplicación con manejo de errores centralizado.
 export async function getAllLeaveRequests(limit = 100, leaderUserId = null) {
   try {
     const leaveRequests = await leaveRequestRepository.findAllLeaveRequests(limit, leaderUserId);
@@ -11,6 +12,7 @@ export async function getAllLeaveRequests(limit = 100, leaderUserId = null) {
   }
 }
 
+// Recupera una solicitud por id y lanza errores de negocio claramente tipificados.
 export async function getLeaveRequestById(id) {
   try {
     const leaveRequest = await leaveRequestRepository.findLeaveRequestById(id);
@@ -24,6 +26,7 @@ export async function getLeaveRequestById(id) {
   }
 }
 
+// Obtiene el historial de solicitudes de un colaborador para mostrarlos en su contexto.
 export async function getLeaveRequestsByEmployeeId(employee_id) {
   try {
     const leaveRequests = await leaveRequestRepository.findLeaveRequestsByEmployeeId(employee_id);
@@ -33,6 +36,7 @@ export async function getLeaveRequestsByEmployeeId(employee_id) {
   }
 }
 
+// Consulta solicitudes por estado para los listados o reportes segmentados por condición.
 export async function getLeaveRequestsByStatus(status) {
   try {
     const leaveRequests = await leaveRequestRepository.findLeaveRequestsByStatus(status);
@@ -42,6 +46,7 @@ export async function getLeaveRequestsByStatus(status) {
   }
 }
 
+// Actualiza el estado visible de una solicitud validando la lista de estados permitidos.
 export async function updateStatus(id, status) {
   try {
     // Validar status válidos
@@ -63,12 +68,14 @@ export async function updateStatus(id, status) {
   }
 }
 
+// Revisa una solicitud con la lógica del repositorio y devuelve el resultado normalizado.
 export async function reviewRequest({ id, action, role, userId, userName, observation }) {
   const result = await reviewLeaveRequest({ id, action, role, userId, userName, observation });
   if (result.error) throw new AppError(result.error, result.status);
   return result;
 }
 
+// Elimina una solicitud usando la capa de servicios y propagando errores específicos.
 export async function deleteLeaveRequest(id) {
   try {
     const leaveRequest = await leaveRequestRepository.findLeaveRequestById(id);
@@ -84,6 +91,7 @@ export async function deleteLeaveRequest(id) {
   }
 }
 
+// Calcula métricas rápidas del módulo según estado y liderazgo para los paneles superiores.
 export async function getStatistics({ leaderUserId = null } = {}) {
   try {
     const count = leaderUserId

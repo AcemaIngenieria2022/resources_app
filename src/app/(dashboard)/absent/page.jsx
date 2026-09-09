@@ -4,8 +4,10 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
 import styles from './page.module.css';
 
+// Devuelve la fecha actual en formato ISO para cargar la vista del día seleccionado.
 const getToday = () => new Date().toISOString().slice(0, 10);
 
+// Página de ausentes: muestra a los colaboradores que no registraron ingreso para una fecha determinada.
 export default function AbsentPage() {
   const [date, setDate] = useState(getToday());
   const [search, setSearch] = useState('');
@@ -15,6 +17,7 @@ export default function AbsentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Carga la lista de ausentes cada vez que cambia la fecha consultada.
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -38,6 +41,7 @@ export default function AbsentPage() {
     return () => { cancelled = true; };
   }, [date]);
 
+  // Cambia el criterio de ordenación para que la tabla pueda ordenarse por nombre, departamento o cargo.
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortDir((current) => current === 'asc' ? 'desc' : 'asc');
@@ -47,6 +51,7 @@ export default function AbsentPage() {
     }
   };
 
+  // Filtra los registros según la búsqueda libre por nombre, identificación o departamento.
   const filteredRecords = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return records.filter((record) => !normalizedSearch
@@ -54,6 +59,7 @@ export default function AbsentPage() {
         .some((value) => String(value || '').toLowerCase().includes(normalizedSearch)));
   }, [records, search]);
 
+  // Agrupa los ausentes por departamento para mostrar una vista más clara y ordenada.
   const groups = useMemo(() => {
     const grouped = new Map();
     filteredRecords.forEach((record) => {
@@ -75,6 +81,7 @@ export default function AbsentPage() {
     return departments.map((department) => ({ department, records: grouped.get(department) }));
   }, [filteredRecords, sortBy, sortDir]);
 
+  // Devuelve el símbolo visual de orden para cada columna de la tabla.
   const sortLabel = (column) => sortBy === column ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
   return (

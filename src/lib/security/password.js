@@ -1,3 +1,4 @@
+// Helpers para el manejo seguro de contraseñas usando scrypt en la capa de seguridad.
 import crypto from 'crypto';
 
 const DEFAULT_SCRYPT_PARAMS = {

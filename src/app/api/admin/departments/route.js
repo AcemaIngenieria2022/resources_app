@@ -2,6 +2,7 @@ import { AppError } from '@/lib/errors/AppError';
 import { okResponse, errorResponse } from '@/lib/utils/api-response';
 import * as deptService from '@/services/admin/department.service';
 
+// API para listar departamentos registrados en el sistema.
 export async function GET() {
   try {
     const { departments, total } = await deptService.listDepartments({ limit: 500 });
@@ -14,6 +15,7 @@ export async function GET() {
   }
 }
 
+// API para crear, actualizar o eliminar departamentos según la acción recibida desde el cliente.
 export async function POST(request) {
   try {
     const body = await request.json();

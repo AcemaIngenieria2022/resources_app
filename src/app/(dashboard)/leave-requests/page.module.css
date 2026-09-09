@@ -1,8 +1,10 @@
+/* Contenedor general de la pantalla de novedades. */
 .pageContainer {
   width: 100%;
   padding: 14px 0;
 }
 
+/* Encabezado, título y botón de actualización del módulo. */
 .header {
   display: flex;
   justify-content: space-between;
@@ -358,6 +360,7 @@
 .timelinecompleted .timelineDot { border-color: #e05252; background: #ffd0d0; }
 .timelinerejected .timelineDot { border-color: #eaa0a0; background: #f8d5d5; }
 .timelineexpired .timelineDot { border-color: #f59e0b; background: #fed7aa; }
+.timelinecancelled .timelineDot { border-color: #f0c980; background: #fef3c7; }
 .timelinePending .timelineDot { border-color: #f0c980; background: #f9e8b2; }
 .timelineCurrent.timelinecreated { color: #5f9fe0; }
 .timelineCurrent.timelineapproved { color: #4db673; }
@@ -365,6 +368,7 @@
 .timelineCurrent.timelinecompleted { color: #dc2626; }
 .timelineCurrent.timelinerejected { color: #d96a6a; }
 .timelineCurrent.timelineexpired { color: #f97316; }
+.timelineCurrent.timelinecancelled { color: #d97706; }
 
 .timelineCurrent {
   padding: 3px 6px;
@@ -581,15 +585,15 @@
   color: #f97316;
 }
 
+.status-cancelled {
+  color: #d97706;
+}
+
 .status-rejected {
   color: #dc2626;
 }
 
-.status-cancelled {
-  color: #6b7280;
-}
-
-/* --- Fin estilos del modal --- */
+/* --- Fin de estilos del modal y de detalle de novedades --- */
 
 @media (max-width: 768px) {
   .statsGrid {

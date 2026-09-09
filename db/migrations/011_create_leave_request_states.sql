@@ -19,7 +19,8 @@ INSERT INTO state (code, name) VALUES
   ('hr_approved', 'Aprobado RRHH'),
   ('hr_rejected', 'Rechazado RRHH'),
   ('completed', 'Finalizada'),
-  ('expired', 'Vencida')
+  ('expired', 'Vencida'),
+  ('cancelled', 'Cancelada')
 ON DUPLICATE KEY UPDATE name = VALUES(name), active = 1;
 
 ALTER TABLE leave_requests

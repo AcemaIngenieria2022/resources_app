@@ -2,6 +2,7 @@ import { AppError } from '@/lib/errors/AppError';
 import { okResponse, errorResponse } from '@/lib/utils/api-response';
 import * as empService from '@/services/employees/employee.service';
 
+// GET: entrega la lista de empleados activos para los módulos administrativos.
 export async function GET() {
   try {
     const { employees, total } = await empService.listEmployees({ limit: 500 });
@@ -14,6 +15,7 @@ export async function GET() {
   }
 }
 
+// POST: maneja las operaciones de creación, edición y eliminación de empleados.
 export async function POST(request) {
   try {
     const body = await request.json();

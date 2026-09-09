@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/mysql';
 
+// Repositorio para administrar los cargos del sistema con operaciones CRUD básicas.
 export async function findAllPositions(limit = 200) {
   return query(
     `

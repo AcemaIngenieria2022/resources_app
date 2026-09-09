@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/mysql';
 
+// Repositorio para gestionar los documentos asociados a cada colaborador.
 export async function findAllCollaboratorDocuments(limit = 50) {
   return query(
     `

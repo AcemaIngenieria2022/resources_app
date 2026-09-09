@@ -1,3 +1,4 @@
+// Servicio para gestionar documentos asociados a un colaborador y validar su unicidad.
 import { AppError } from '@/lib/errors/AppError';
 import {
   findAllCollaboratorDocuments,

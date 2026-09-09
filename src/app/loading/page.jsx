@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ThreeBounceLoader from '@/components/ui/ThreeBounceLoader/ThreeBounceLoader';
 import './page.css';
 
+// Contenido de carga para redirigir al usuario a la siguiente vista después de iniciar o cerrar sesión.
 function LoadingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +30,7 @@ function LoadingPageContent() {
   );
 }
 
+// Página intermedia de carga con spinner mientras se redirige entre rutas del sistema.
 export default function LoadingPage() {
   return (
     <Suspense fallback={

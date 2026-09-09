@@ -1,7 +1,9 @@
+/* Contenedor general de la pantalla de administración de ausencias. */
 .pageContainer {
   width: 100%;
   padding: 14px 0;
 }
+/* Encabezado del módulo con el título y descripción. */
 .header {
   display: flex;
   justify-content: space-between;
@@ -200,6 +202,7 @@
   color: #080808;
   font-weight: 700;
 }
+/* Botón principal para abrir el modal de registro de nueva novedad. */
 .registerButton {
   display: inline-flex;
   align-items: center;
@@ -297,6 +300,7 @@
   color: #64748b;
   font-size: 10px;
 }
+/* Badge estándar para tipos de novedad que siguen en el informe activo. */
 .badge {
   padding: 3px 6px;
   border-radius: 5px;
@@ -306,6 +310,18 @@
   font-weight: 700;
   white-space: nowrap;
 }
+/* Badge amarillo para distinguir las novedades canceladas dentro de la tabla separada. */
+.cancelledBadge {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* Área de acciones de cada fila: editar, cancelar y eliminar. */
 .actions {
   display: flex;
   align-items: center;
@@ -324,6 +340,14 @@
   color: #168f80;
   cursor: pointer;
 }
+.actions button:nth-child(2) {
+  background: #fef3c7;
+  color: #b45309;
+}
+.actions button:nth-child(2):hover {
+  background: #facc15;
+  color: #1f2937;
+}
 .actions button:last-child {
   background: #fff1f2;
   color: #dc2626;
@@ -334,6 +358,7 @@
   text-align: center;
 }
 /* Overlay con fondo más suave y efecto glassmorphism mejorado */
+/* Overlay y modal para formularios de registro y edición. */
 .modalOverlay {
   position: fixed;
   inset: 0;

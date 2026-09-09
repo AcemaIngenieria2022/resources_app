@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styles from './DashboardCard.module.css';
 
+// Tarjeta reutilizable para cada acceso principal del dashboard.
 export default function DashboardCard({ icon, title, description, href, draggable, onDragStart, onDragOver, onDrop, style }) {
   return (
     <Link

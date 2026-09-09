@@ -1,3 +1,5 @@
+// Utilidades para exportar contenido desde el navegador a CSV, PDF y XLSX.
+// Las funciones mantienen el flujo de descarga en el cliente sin depender de un backend adicional.
 export function downloadCsv(data, filename = 'export.csv') {
   // If data is already a string, treat it as CSV content
   let csv = '';
@@ -46,6 +48,7 @@ export function downloadCsv(data, filename = 'export.csv') {
   URL.revokeObjectURL(url);
 }
 
+// Descarga un texto plano como un archivo PDF, repartiéndolo en páginas automáticamente.
 export async function downloadPdf(text, filename = 'export.pdf') {
   if (typeof window === 'undefined') {
     console.warn('downloadPdf called outside browser environment');
@@ -72,6 +75,7 @@ export async function downloadPdf(text, filename = 'export.pdf') {
   doc.save(filename);
 }
 
+// Exporta el contenido visual de un elemento HTML a PDF usando jsPDF + html2canvas.
 export async function downloadPdfFromElement(element, filename = 'export.pdf') {
   if (typeof window === 'undefined') {
     console.warn('downloadPdfFromElement called outside browser environment');
@@ -181,6 +185,7 @@ export async function downloadPdfFromElement(element, filename = 'export.pdf') {
   }
 }
 
+// Variante de exportación que captura un elemento como imagen y la convierte en PDF paginado.
 export async function downloadPdfFromElementImage(element, filename = 'export.pdf') {
   if (typeof window === 'undefined') return;
   if (!element) return;
@@ -269,6 +274,7 @@ export async function downloadPdfFromElementImage(element, filename = 'export.pd
   }
 }
 
+// Genera un PDF agrupando las filas del elemento exportado por departamento antes de renderizar la imagen.
 export async function downloadPdfGroupedByDepartmentImage(element, filename = 'export.pdf') {
   if (typeof window === 'undefined') return;
   if (!element) return;
@@ -401,6 +407,7 @@ export async function downloadPdfGroupedByDepartmentImage(element, filename = 'e
   }
 }
 
+// Convierte los datos del resumen en un archivo XLSX con estilos básicos y leyendas de color.
 export async function downloadXlsx(data, filename = 'export.xlsx') {
   if (typeof window === 'undefined') {
     console.warn('downloadXlsx called outside browser environment');
@@ -603,6 +610,7 @@ export async function downloadXlsx(data, filename = 'export.xlsx') {
   URL.revokeObjectURL(url);
 }
 
+// Exporta el resumen por rango de fechas como PDF con una tabla visual y formato de asistencia.
 export async function downloadDateRangePdf(data, filename = 'date-range.pdf') {
   if (typeof window === 'undefined') return;
 
@@ -657,6 +665,7 @@ export async function downloadDateRangePdf(data, filename = 'date-range.pdf') {
   }
 }
 
+// Genera un PDF directo para rangos de fechas con cabecera, columnas y color por tiempos de entrada/salida.
 export async function downloadDateRangePdfDirect(data, filename = 'date-range.pdf', dateRange = {}) {
   if (typeof window === 'undefined') return;
 
@@ -856,6 +865,7 @@ export async function downloadDateRangePdfDirect(data, filename = 'date-range.pd
   pdf.save(filename);
 }
 
+// Descarga el resumen diario en PDF usando una tabla simple y coloreando tiempos según el criterio del negocio.
 export async function downloadSummaryPdfDirect(data, filename = 'summary.pdf', date = '-') {
   if (typeof window === 'undefined') return;
   const rows = Array.isArray(data) ? data : [];
@@ -988,6 +998,7 @@ export async function downloadSummaryPdfDirect(data, filename = 'summary.pdf', d
   pdf.save(filename);
 }
 
+// Exporta el resumen diario agrupado por departamento, manteniendo columnas clave y registros por colaborador.
 export async function downloadSummaryPdfDirectGrouped(data, filename = 'summary.pdf', date = '-') {
   if (typeof window === 'undefined') return;
   const rows = Array.isArray(data) ? data : [];

@@ -1,5 +1,7 @@
+// Script de sincronización temporal para prueba de integración con la base local.
 const mysql = require('mysql2/promise');
 
+// Inserta un permiso de ejemplo en la tabla leave_requests para validar la sincronización.
 async function sincronizarPermisos() {
     const connection = await mysql.createConnection({
         host: 'localhost',

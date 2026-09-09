@@ -1,3 +1,4 @@
+// Pool y helpers de conexión para acceder a la base de datos principal y a la base de attlog.
 import mysql from 'mysql2/promise';
 import { attlogDatabaseConfig, databaseConfig } from '@/config/database';
 

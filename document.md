@@ -19,6 +19,30 @@ La aplicación usa el patrón App Router de Next.js y separa claramente:
 - conexiones a BD: `src/lib/db`
 - autenticación y permisos: `src/context`, `src/lib/auth`, `src/middleware`
 
+## Índice
+
+1. [Resumen general](#1-resumen-general)
+2. [Stack tecnológico](#2-stack-tecnológico)
+3. [Requisitos previos](#3-requisitos-previos)
+4. [Variables de entorno](#4-variables-de-entorno)
+5. [Instalación y arranque](#5-instalación-y-arranque)
+6. [Scripts disponibles](#6-scripts-disponibles)
+7. [Estructura de carpetas](#7-estructura-de-carpetas)
+8. [Arquitectura general](#8-arquitectura-general)
+9. [Flujo principal de autenticación](#9-flujo-principal-de-autenticación)
+10. [API y manejo de respuestas](#10-api-y-manejo-de-respuestas)
+11. [Rutas API más importantes](#11-rutas-api-más-importantes)
+12. [Bases de datos y migraciones](#12-bases-de-datos-y-migraciones)
+13. [Módulos funcionales principales](#13-módulos-funcionales-principales)
+14. [Reportes automáticos](#14-reportes-automáticos)
+15. [Patrones de diseño que usa la app](#15-patrones-de-diseño-que-usa-la-app)
+16. [Puntos críticos / mejores prácticas para desarrolladores](#16-puntos-críticos--mejores-prácticas-para-desarrolladores)
+17. [Recomendaciones para extender la app](#17-recomendaciones-para-extender-la-app)
+18. [Resumen ejecutivo](#18-resumen-ejecutivo)
+19. [Comandos útiles rápidos](#19-comandos-útiles-rápidos)
+20. [Repositorio de GitHub](#20-repositorio-de-github)
+21. [Fin del documento](#21-fin-del-documento)
+
 ---
 
 ## 2. Stack tecnológico
@@ -161,6 +185,8 @@ En `package.json` existen estos scripts:
 
 ## 7. Estructura de carpetas
 
+La estructura que sigue refleja el estado actual del proyecto luego de limpiar carpetas vacías sin tocar la lógica de la aplicación.
+
 ```text
 resources_app/
 ├── AGENTS.md
@@ -180,12 +206,11 @@ resources_app/
 │   └── REPORTES.md
 ├── public/
 │   └── icons/
-│   └── images/
 ├── reports/
 ├── scripts/
 │   └── reports/
-│       ├── config.js
 │       ├── README.md
+│       ├── config.js
 │       ├── scheduler.js
 │       ├── send-report.bat
 │       ├── send.js
@@ -199,13 +224,13 @@ resources_app/
 │   ├── app/
 │   │   ├── (dashboard)/
 │   │   ├── api/
-│   │   ├── loading/
-│   │   ├── login/
-│   │   ├── registrar-novedad/
 │   │   ├── globals.css
 │   │   ├── layout.jsx
+│   │   ├── loading/
+│   │   ├── login/
 │   │   ├── page.js
-│   │   └── page.module.css
+│   │   ├── page.module.css
+│   │   └── registrar-novedad/
 │   ├── components/
 │   │   ├── attendance/
 │   │   ├── dashboard/
@@ -233,11 +258,10 @@ resources_app/
 │   │   ├── constants/
 │   │   ├── db/
 │   │   ├── errors/
-│   │   ├── helpers/
+│   │   ├── export.js
 │   │   ├── repositories/
 │   │   ├── security/
-│   │   ├── utils/
-│   │   └── validations/
+│   │   └── utils/
 │   ├── middleware/
 │   │   ├── authMiddleware.js
 │   │   ├── permissionMiddleware.js
@@ -260,8 +284,10 @@ resources_app/
 │       ├── theme.css
 │       ├── utilities.css
 │       └── variables.css
-└── templates/
+└──
 ```
+
+> Las carpetas `templates/`, `public/images/`, `src/lib/helpers/` y `src/lib/validations/` fueron eliminadas porque estaban vacías y no forman parte de la lógica funcional del proyecto.
 
 ---
 
@@ -634,11 +660,10 @@ npm run reports:schedule
 
 ---
 
-## 21. Repositorio de github
+## 20. Repositorio de GitHub
 
+- AcemaIngenieria2022
+- Acema2026.s
 
-AcemaIngenieria2022
-Acema2026.s
-
-## 22. Fin del documento
+## 21. Fin del documento
 

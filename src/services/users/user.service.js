@@ -1,3 +1,4 @@
+// Servicio para administrar cuentas de usuario, contraseñas y búsquedas del módulo de usuarios.
 import { AppError } from '@/lib/errors/AppError';
 import { createUser, findUsers, updateUser, findUserById, updateUserPassword } from '@/lib/repositories/user.repository';
 import passwordUtils from '@/lib/security/password';

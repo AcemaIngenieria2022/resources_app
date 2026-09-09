@@ -1,3 +1,4 @@
+// Servicio placeholder para resumenes y acciones de asistencia.
 export const attendanceService = {
   getSummary: async () => [],
   clockIn: async () => ({ success: true }),

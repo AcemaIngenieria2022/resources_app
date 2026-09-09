@@ -2,6 +2,8 @@ import { query } from '@/lib/db/mysql';
 import { AppError } from '@/lib/errors/AppError';
 import passwordUtils from '@/lib/security/password';
 
+// Repositorio para las operaciones de usuarios, estados, roles y actualización de credenciales.
+
 const STATUS_NAMES = ['active', 'suspended', 'disabled'];
 
 const normalizeStatus = (value) => {

@@ -1,3 +1,4 @@
+// Servicio para operaciones CRUD de cargos dentro del panel administrativo.
 import { AppError } from '@/lib/errors/AppError';
 import * as posRepo from '@/lib/repositories/position.repository';
 

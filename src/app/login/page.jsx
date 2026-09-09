@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/context/AuthContext';
 import './page.css';
 
+// Estado inicial del formulario para evitar valores vacíos al renderizar la pantalla de login.
 const initialState = {
   email: 'ti@acemaingenieria.com',
   password: 'admin123',
 };
 
+// Página de inicio de sesión del sistema con validación, recordarme y redirección al dashboard.
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthContext();

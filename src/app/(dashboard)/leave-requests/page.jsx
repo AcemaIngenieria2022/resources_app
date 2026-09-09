@@ -17,6 +17,7 @@ import {
 import styles from './page.module.css';
 import { useAuthContext } from '@/context/AuthContext';
 
+// Modal reutilizable para mostrar detalles y contenido contextual de una novedad.
 const Modal = ({ isOpen, title, onClose, children }) => {
   if (!isOpen) return null;
 
@@ -56,6 +57,7 @@ const Modal = ({ isOpen, title, onClose, children }) => {
   );
 };
 
+// Alertas visuales para feedback inmediato del usuario sobre acciones de aprobación, rechazo o carga.
 const Alert = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
@@ -72,6 +74,7 @@ const Alert = ({ message, type, onClose }) => {
   );
 };
 
+// Modal de detalle de una novedad: muestra la información completa y los documentos asociados.
 const DetailModal = ({ isOpen, data, onClose }) => {
   if (!data) return null;
 
@@ -228,6 +231,7 @@ const DetailModal = ({ isOpen, data, onClose }) => {
   );
 };
 
+// Devuelve el texto del siguiente paso pendiente según el estado actual de la novedad.
 function getPendingState(stateCode) {
   const states = {
     created: 'Pendiente de aprobación del líder',
@@ -264,6 +268,7 @@ function formatTime(value) {
   return value;
 }
 
+// Formatea la leyenda de rechazos para distinguir una cancelación automática por vencimiento de un rechazo manual.
 function getRejectionDisplay(request) {
   if (request.rejected_by_name === 'Sistema' || request.rejected_by_role === 'Sistema') {
     return 'Rechazado automáticamente por tiempo excedido';
@@ -272,6 +277,7 @@ function getRejectionDisplay(request) {
   return request.rejected_by_name || 'No disponible';
 }
 
+// Construye la trazabilidad visual de la novedad con sus etapas de líder, RR. HH., finalización y vencimiento.
 function RequestTimeline({ request }) {
   const currentState = request.state_code || 'created';
   const hasLeaderApproval = Boolean(request.leader_approved_at);
@@ -279,6 +285,7 @@ function RequestTimeline({ request }) {
   const hasRejected = Boolean(request.rejected_at);
   const isRejectedFlow = ['leader_rejected', 'hr_rejected'].includes(currentState);
   const isExpired = currentState === 'expired';
+  const isCancelled = currentState === 'cancelled';
   const isLeaderRejected = currentState === 'leader_rejected';
   const isAutoRejected = request.rejected_by_name === 'Sistema' || request.rejected_by_role === 'Sistema';
   const hrStageDate = isLeaderRejected ? null : request.completed_at || request.rejected_at;
@@ -322,12 +329,12 @@ function RequestTimeline({ request }) {
           },
         ]),
     {
-      label: isExpired ? 'Vencida' : 'Finalizada',
-      date: request.completed_at || request.rejected_at,
-      actor: request.completed_by_name || request.rejected_by_name,
-      tone: isExpired ? 'expired' : (isRejectedFlow ? 'rejected' : 'completed'),
-      active: hasHrApproval || hasRejected || currentState === 'completed' || currentState === 'expired' || isRejectedFlow,
-      current: currentState === 'completed' || currentState === 'expired' || isRejectedFlow,
+      label: isExpired ? 'Vencida' : isCancelled ? 'Cancelado' : 'Finalizada',
+      date: isCancelled ? (request.rejected_at || request.completed_at) : (request.completed_at || request.rejected_at),
+      actor: isCancelled ? (request.rejected_by_name || request.completed_by_name) : (request.completed_by_name || request.rejected_by_name),
+      tone: isCancelled ? 'cancelled' : (isExpired ? 'expired' : (isRejectedFlow ? 'rejected' : 'completed')),
+      active: hasHrApproval || hasRejected || currentState === 'completed' || currentState === 'expired' || currentState === 'cancelled' || isRejectedFlow,
+      current: currentState === 'completed' || currentState === 'expired' || currentState === 'cancelled' || isRejectedFlow,
     },
   ];
 
@@ -356,6 +363,8 @@ function RequestTimeline({ request }) {
   );
 }
 
+// Pantalla principal de novedades.
+// Muestra la lista, estadísticas, detalle, trazabilidad y acciones de revisión de solicitudes.
 export default function LeaveRequestsPage() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [statistics, setStatistics] = useState(null);
@@ -376,6 +385,7 @@ export default function LeaveRequestsPage() {
     setAlert({ message, type });
   }, []);
 
+  // Carga la lista de novedades para mostrarla en la tabla principal.
   const loadLeaveRequests = useCallback(async () => {
     try {
       setLoading(true);
@@ -398,6 +408,7 @@ export default function LeaveRequestsPage() {
     }
   }, [statusFilter, reviewRole, user, showAlert]);
 
+  // Carga los contadores de estadísticas para el panel superior de la pantalla.
   const loadStatistics = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/leave-requests', {
@@ -421,6 +432,7 @@ export default function LeaveRequestsPage() {
     return () => clearTimeout(timer);
   }, [loadLeaveRequests, loadStatistics]);
 
+  // Ejecuta la aprobación o rechazo de una novedad desde la tabla principal.
   const handleReview = async (id, reviewAction) => {
     const result = await Swal.fire(reviewAction === 'reject'
       ? {
@@ -466,6 +478,7 @@ export default function LeaveRequestsPage() {
     }
   };
 
+  // Elimina una novedad del sistema cuando el usuario con permisos adecuados confirma la acción.
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: 'Eliminar',
@@ -519,7 +532,7 @@ export default function LeaveRequestsPage() {
       created: '#64748b',
       completed: '#dc2626',
       expired: '#f97316',
-      cancelled: '#6b7280',
+      cancelled: '#d97706',
     };
     return colors[status.toLowerCase()] || '#64748b';
   };
@@ -531,7 +544,7 @@ export default function LeaveRequestsPage() {
       rejected: { text: 'Rechazado', color: '#dc2626' },
       completed: { text: 'Finalizada', color: '#dc2626' },
       expired: { text: 'Vencida', color: '#f97316' },
-      cancelled: { text: 'Cancelado', color: '#6b7280' },
+      cancelled: { text: 'Cancelado', color: '#d97706' },
     };
     return badges[status.toLowerCase()] || { text: status, color: '#64748b' };
   };
@@ -546,7 +559,9 @@ export default function LeaveRequestsPage() {
         />
       )}
 
+      {/* Encabezado con título, descripción y botón de recarga del módulo. */}
       <div className={styles.header}>
+        {/* Encabezado con título, descripción y botón de actualización */}
         <div className={styles.headerLeft}>
           <div className={styles.headerIcon}>
             <FontAwesomeIcon icon={faClipboardList} />
@@ -558,6 +573,7 @@ export default function LeaveRequestsPage() {
             </p>
           </div>
         </div>
+        {/* Botón para recargar la lista y las estadísticas del módulo. */}
         <button
           type="button"
           className={styles.refreshButton}
@@ -573,6 +589,7 @@ export default function LeaveRequestsPage() {
       </div>
 
       {/* Statistics */}
+      {/* Tarjetas de estadísticas rápidas del estado de las novedades. */}
       {statistics && (
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
@@ -601,6 +618,7 @@ export default function LeaveRequestsPage() {
       )}
 
       {/* Filters */}
+      {/* Filtros y búsqueda para ubicar rápidamente una novedad concreta. */}
       <div className={styles.filterSection}>
         <input
           type="text"
@@ -686,6 +704,7 @@ export default function LeaveRequestsPage() {
                         >
                           <FontAwesomeIcon icon={faEye} />
                         </button>
+                        {/* Botones de revisión disponibles solo para los estados que aún requieren aprobación. */}
                         {((reviewRole === 'leader' && ['created', 'leader_pending'].includes(lr.state_code || 'created')) || (reviewRole === 'hr' && lr.state_code === 'hr_pending')) && (
                           <>
                             <button

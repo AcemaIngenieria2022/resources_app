@@ -1,5 +1,7 @@
 import { attlogQuery, query } from '@/lib/db/mysql';
 
+// Repositorio encargado de construir el resumen diario de asistencia con ausencias, marcas y novedades aprobadas.
+// Genera el resumen de asistencia del día, incluyendo ausencias manuales, series y solicitudes aprobadas.
 export async function findSummary({ date = '', search = '', device = 'all' } = {}) {
   if (!date) {
     return [];
@@ -45,7 +47,7 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
   const approvedLeaveRequests = await query(`
     SELECT
       lr.employee_id,
-      lr.reason,
+      lr.leave_class,
       lr.permission_type,
       lr.start_date,
       lr.end_date,
@@ -86,8 +88,8 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
   for (const request of approvedLeaveRequests) {
     const employeeId = Number(request.employee_id);
     const requestReason = request.permission_type === 'hours'
-      ? `${request.reason} (${request.permission_date} ${request.start_time?.slice(0, 5)} - ${request.end_time?.slice(0, 5)})`
-      : `${request.reason} (${request.start_date} a ${request.end_date})`;
+      ? `${request.leave_class || 'Novedad'} (${request.permission_date} ${request.start_time?.slice(0, 5)} - ${request.end_time?.slice(0, 5)})`
+      : `${request.leave_class || 'Novedad'} (${request.start_date} a ${request.end_date})`;
 
     const currentReasons = approvedLeaveRequestReasons.get(employeeId) || [];
     currentReasons.push(requestReason);

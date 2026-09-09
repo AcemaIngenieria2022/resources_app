@@ -1,6 +1,7 @@
 import pool from '@/lib/db/mysql';
 import { errorResponse, okResponse } from '@/lib/utils/api-response';
 
+// Normaliza una fecha recibida desde el cliente para evitar inconsistencias de formato.
 function parseDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return null;
   const date = new Date(`${value}T00:00:00Z`);
@@ -8,14 +9,17 @@ function parseDate(value) {
   return formatDate(date) === value ? date : null;
 }
 
+// Convierte un objeto Date a un string ISO-8601 compatible con la base de datos.
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
+// Valida y deja en formato hh:mm las horas recibidas desde el formulario.
 function parseTime(value) {
   return /^\d{2}:\d{2}$/.test(value || '') ? value : null;
 }
 
+// Genera la lista de fechas de una serie según el rango y la configuración de días seleccionados.
 function getDates(startDate, endDate, weekday = null) {
   const dates = [];
   const current = new Date(startDate);
@@ -27,6 +31,7 @@ function getDates(startDate, endDate, weekday = null) {
   return dates;
 }
 
+// Crea una nueva novedad manual o derivada de una serie desde el panel de administración.
 export async function POST(request) {
   const connection = await pool.getConnection();
 
@@ -98,6 +103,7 @@ export async function POST(request) {
   }
 }
 
+// Lista las novedades activas para cargar la pantalla de administración y separar las canceladas.
 export async function GET() {
   try {
     const [manualSingles] = await pool.query(`
@@ -175,6 +181,7 @@ export async function GET() {
       LEFT JOIN departments d ON d.id = e.department_id
       INNER JOIN state st ON st.id = lr.state_id
       WHERE st.code = 'completed'
+        AND lr.status <> 'Cancelled'
     `);
 
     const rows = [...manualSingles, ...manualSeries, ...completedLeaveRequests]
@@ -196,6 +203,7 @@ export async function GET() {
   }
 }
 
+// Actualiza una novedad existente, incluyendo las que provienen de leave requests.
 export async function PUT(request) {
   const connection = await pool.getConnection();
 
@@ -319,6 +327,7 @@ export async function PUT(request) {
   }
 }
 
+// Elimina o cancela una novedad según el origen y la acción pedida por el cliente.
 export async function DELETE(request) {
   const connection = await pool.getConnection();
 
@@ -327,12 +336,66 @@ export async function DELETE(request) {
     const id = Number(searchParams.get('id'));
     const seriesId = Number(searchParams.get('series_id'));
     const source = String(searchParams.get('source') || 'manual');
+    const action = String(searchParams.get('action') || 'delete');
     if (!id && !seriesId) return Response.json(errorResponse('ID es requerido', 400), { status: 400 });
 
     await connection.beginTransaction();
     let result;
     if (source === 'leave_request') {
-      [result] = await connection.execute('DELETE FROM leave_requests WHERE id = ?', [id]);
+      if (action === 'cancel') {
+        const [existingRows] = await connection.execute(
+          `SELECT id, state_id
+           FROM leave_requests
+           WHERE id = ? LIMIT 1`,
+          [id]
+        );
+
+        if (existingRows.length === 0) {
+          await connection.rollback();
+          return Response.json(errorResponse('Novedad no encontrada', 404), { status: 404 });
+        }
+
+        const [existingCancelledState] = await connection.execute(
+          `SELECT id
+           FROM state
+           WHERE code = 'cancelled'
+           LIMIT 1`
+        );
+
+        let cancelledStateId = existingCancelledState?.[0]?.id;
+
+        if (!cancelledStateId) {
+          await connection.execute(
+            `INSERT INTO state (code, name, active)
+             VALUES ('cancelled', 'Cancelada', 1)
+             ON DUPLICATE KEY UPDATE name = VALUES(name), active = 1`
+          );
+
+          const [createdCancelledState] = await connection.execute(
+            `SELECT id
+             FROM state
+             WHERE code = 'cancelled'
+             LIMIT 1`
+          );
+          cancelledStateId = createdCancelledState?.[0]?.id;
+        }
+
+        if (!cancelledStateId) {
+          await connection.rollback();
+          return Response.json(errorResponse('No se pudo crear el estado cancelled', 500), { status: 500 });
+        }
+
+        [result] = await connection.execute(
+          `UPDATE leave_requests
+           SET state_id = ?,
+               status = 'Cancelled',
+               rejected_at = NOW()
+           WHERE id = ?`,
+          [cancelledStateId, id]
+        );
+      } else {
+        [result] = await connection.execute('DELETE FROM leave_requests WHERE id = ?', [id]);
+      }
     } else if (seriesId) {
       const [series] = await connection.execute(
         'SELECT employee_id, start_date, end_date, reason FROM absence_series WHERE id = ? LIMIT 1',

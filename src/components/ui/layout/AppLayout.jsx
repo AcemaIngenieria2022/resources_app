@@ -21,6 +21,7 @@ import {
 import { useAuthContext } from '@/context/AuthContext';
 import styles from './app-layout.module.css';
 
+// Define la estructura del menú lateral para cada rol y sección del sistema.
 const navItems = [
   { href: '/dashboard', label: 'Inicio', icon: faHouse },
   {
@@ -52,6 +53,7 @@ const navItems = [
   },
 ];
 
+// Mapea los roles del sistema con sus etiquetas legibles para mostrar en la interfaz.
 const roleDescriptions = {
   admin: 'Administrador',
   hr: 'RR.HH.',
@@ -61,6 +63,7 @@ const roleDescriptions = {
   user: 'Usuario',
 };
 
+// Layout principal de la aplicación: sidebar, cabecera, estado de usuario y contenido dinámico.
 export default function AppLayout({ children }) {
   const [expanded, setExpanded] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState([]);
@@ -86,6 +89,8 @@ export default function AppLayout({ children }) {
     || 'Panel';
   const toggleIcon = expanded ? faChevronLeft : faChevronRight;
 
+  // Cierra sesión con una pequeña espera para dar feedback visual antes de redirigir al login.
+  // El temporizador permite mostrar el estado de cierre sin interrumpir la experiencia de usuario.
   const handleLogout = () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -94,8 +99,8 @@ export default function AppLayout({ children }) {
       router.push('/loading?next=/login');
     }, 500);
   };
-  // Ensure Hooks are always called in the same order by placing
-  // the effect before any early return.
+  // Asegura que el efecto se ejecute antes de cualquier retorno temprano del componente.
+  // Cuando la ruta actual pertenece a un submenu, se abre automáticamente para reflejar la vista activa.
   useEffect(() => {
     // auto-open submenu if current path matches a child
     const match = navItems.find((item) => item.children && item.children.some((c) => c.href === pathname));
@@ -106,6 +111,8 @@ export default function AppLayout({ children }) {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
+  // Reinicia el estado de cierre de sesión cuando se cambia a una vista pública o cuando el usuario aún no está listo.
+  // Esto evita que el botón quede bloqueado tras un cambio de ruta o una carga parcial.
   useEffect(() => {
     if (pathname === '/login' || !displayUser) {
       const timer = window.setTimeout(() => setIsLoggingOut(false), 0);
@@ -114,16 +121,20 @@ export default function AppLayout({ children }) {
     return undefined;
   }, [pathname, displayUser]);
 
+  // Redirige a los roles con permisos limitados fuera de las rutas de gestión de usuarios.
+  // Esto mantiene la navegación consistente y evita que acceso no autorizado vea paneles internos.
   useEffect(() => {
     if (hydrated && (isHumanResources || isApprover) && isUserManagementRoute) {
       router.replace('/dashboard');
     }
   }, [hydrated, isApprover, isHumanResources, isUserManagementRoute, router]);
 
+  // Si la ruta actual es pública, muestra solo el contenido sin el shell de aplicación.
   if (hideShell) {
     return <>{children}</>;
   }
 
+  // Expande o contrae la barra lateral cuando el usuario entra o sale del área del sidebar.
   const handleMouseEnter = () => setExpanded(true);
   const handleMouseLeave = () => setExpanded(false);
 

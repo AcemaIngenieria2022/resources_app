@@ -12,6 +12,7 @@ import {
   faCircleInfo,
   faTimes,
   faTrash,
+  faBan,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./page.module.css";
 
@@ -28,9 +29,12 @@ const emptyForm = {
   notes: "",
 };
 
+// Módulo de administración de ausencias y novedades.
+// Permite ver, registrar, editar, cancelar y eliminar registros de colaboradores.
 export default function ManageAbsencesPage() {
   const [employees, setEmployees] = useState([]);
   const [records, setRecords] = useState([]);
+  const [cancelledRecords, setCancelledRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -56,6 +60,7 @@ export default function ManageAbsencesPage() {
     setEmployees(payload?.data || []);
   }, []);
 
+  // Carga todas las novedades registradas y separa las canceladas para mostrarlas en una tabla distinta.
   const loadRecords = useCallback(async () => {
     setLoading(true);
     try {
@@ -63,7 +68,18 @@ export default function ManageAbsencesPage() {
       const payload = await response.json();
       if (!response.ok || !payload?.success)
         throw new Error(payload?.error || "Error al cargar novedades");
-      setRecords(payload.data || []);
+
+      const allRecords = payload.data || [];
+      const cancelled = allRecords.filter(
+        (record) => record.source === "leave_request" && (record.state_code === "cancelled" || record.status === "Cancelled" || record.state_name === "Cancelada")
+      );
+
+      setRecords(
+        allRecords.filter(
+          (record) => !(record.source === "leave_request" && (record.state_code === "cancelled" || record.status === "Cancelled" || record.state_name === "Cancelada"))
+        )
+      );
+      setCancelledRecords(cancelled);
     } catch (error) {
       showAlert(error.message, "error");
     } finally {
@@ -105,6 +121,7 @@ export default function ManageAbsencesPage() {
     await loadRecords();
   }
 
+  // Guarda los cambios de una novedad editada desde el modal.
   async function saveRecord(event) {
     event.preventDefault();
     const response = await fetch("/api/admin/absences", {
@@ -122,6 +139,7 @@ export default function ManageAbsencesPage() {
     await loadRecords();
   }
 
+  // Elimina la novedad del sistema para registros manuales o de series.
   async function removeRecord(record) {
     if (!window.confirm("¿Eliminar esta novedad?")) return;
     const params = new URLSearchParams(
@@ -141,8 +159,29 @@ export default function ManageAbsencesPage() {
     await loadRecords();
   }
 
+  // Cancela una novedad proveniente de leave_request sin borrarla de la base de datos.
+  async function cancelRecord(record) {
+    if (!window.confirm("¿Cancelar esta novedad? Se quitará del informe, pero no se eliminará del sistema.")) {
+      return;
+    }
+
+    const response = await fetch(`/api/admin/absences?id=${record.id}&source=${record.source || "manual"}&action=cancel`, {
+      method: "DELETE",
+    });
+    const payload = await response.json();
+
+    if (!response.ok || !payload?.success) {
+      showAlert(payload?.error || "No se pudo cancelar", "error");
+      return;
+    }
+
+    showAlert("Novedad cancelada");
+    await loadRecords();
+  }
+
   return (
     <main className={styles.pageContainer}>
+      {/* Encabezado del módulo: título y descripción general de la pantalla. */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div>
@@ -165,6 +204,7 @@ export default function ManageAbsencesPage() {
         </div>
       )}
 
+      {/* Tabla principal con las novedades activas y disponibles para edición o eliminación. */}
       <section className={styles.recordsPanel}>
         <div className={styles.sectionHeading}>
           <div>
@@ -259,6 +299,15 @@ export default function ManageAbsencesPage() {
                         >
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
+                        {/* Botón de cancelación visible solo para novedades provenientes de formularios de leave request. */}
+                        {record.source === "leave_request" && (
+                          <button
+                            title="Cancelar"
+                            onClick={() => cancelRecord(record)}
+                          >
+                            <FontAwesomeIcon icon={faBan} />
+                          </button>
+                        )}
                         <button
                           title="Eliminar"
                           onClick={() => removeRecord(record)}
@@ -274,6 +323,64 @@ export default function ManageAbsencesPage() {
           </div>
         )}
       </section>
+
+      {/* Tabla separada para novedades canceladas, que quedan almacenadas pero fuera del informe activo. */}
+      {cancelledRecords.length > 0 && (
+        <section className={styles.recordsPanel} style={{ marginTop: 20 }}>
+          <div className={styles.sectionHeading}>
+            <div>
+              <span className={styles.eyebrow}></span>
+              <h2>Novedades canceladas</h2>
+            </div>
+          </div>
+          <div className={styles.tableWrap}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Departamento</th>
+                  <th>Fecha</th>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Notas</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelledRecords.map((record) => (
+                  <tr key={`${record.source}-${record.id}`}>
+                    <td className={styles.employeeCell}>
+                      <strong>{record.personName}</strong>
+                    </td>
+                    <td>{record.department_name || "Sin departamento"}</td>
+                    <td>
+                      {record.type === "series"
+                        ? `${record.start_date} a ${record.end_date}`
+                        : `${record.absence_date}${record.type === "hours" ? ` (${record.start_time?.slice(0, 5)} - ${record.end_time?.slice(0, 5)})` : ""}`}
+                    </td>
+                    <td>
+                      <span className={styles.badge}>
+                        {record.type === "series"
+                          ? record.weekday === null
+                            ? "Continua"
+                            : "Día específico"
+                          : record.type === "hours"
+                            ? "Por horas"
+                            : "Día único"}
+                      </span>
+                    </td>
+                    <td>{record.reason}</td>
+                    <td>{record.notes || "Sin notas"}</td>
+                    <td>
+                      <span className={styles.cancelledBadge}>{record.state_name || "Cancelada"}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {editing && (
         <div className={styles.modalOverlay}>

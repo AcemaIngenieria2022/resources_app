@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { findSummary } from '@/lib/repositories/summary.repository';
 
+// Endpoint que devuelve el resumen diario para el dashboard y la vista de resumen.
 export async function GET(request) {
   const url = new URL(request.url);
   const date = url.searchParams.get('date') || '';

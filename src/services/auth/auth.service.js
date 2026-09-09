@@ -1,3 +1,4 @@
+// Servicio central para login y registro de usuarios con validaciones de negocio.
 import { AppError } from '@/lib/errors/AppError';
 import {
   createUser,

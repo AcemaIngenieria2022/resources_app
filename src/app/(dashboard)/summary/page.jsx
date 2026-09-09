@@ -7,6 +7,7 @@ import AttlogFilters from '@/components/attendance/AttlogFilters/AttlogFilters';
 import { downloadSummaryPdfDirectGrouped, downloadXlsx } from '@/lib/export';
 import styles from './page.module.css';
 
+// Formatea una hora de registro para mostrarla en la tabla de resumen.
 const formatDate = (value) => {
   if (!value) return '-';
   const normalized = String(value).replace(' ', 'T');
@@ -15,6 +16,7 @@ const formatDate = (value) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+// Convierte una hora textual a minutos para evaluar tardanzas o salidas anticipadas.
 const parseTimeMinutes = (value) => {
   if (!value) return null;
   const match = String(value).match(/(\d{1,2}):(\d{2})(?::\d{2})?$/);
@@ -25,22 +27,26 @@ const parseTimeMinutes = (value) => {
   return hours * 60 + minutes;
 };
 
+// Identifica si el ingreso fue tardío según el umbral establecido por el negocio.
 const isLateArrival = (value) => {
   const minutes = parseTimeMinutes(value);
   return minutes !== null && minutes > 7 * 60 + 5;
 };
 
+// Identifica si el ingreso fue temprano y requiere una clase visual distinta.
 const isEarlyArrival = (value) => {
   const minutes = parseTimeMinutes(value);
   return minutes !== null && minutes <= 7 * 60 + 5;
 };
 
+// Devuelve la clase CSS para resaltar si el ingreso fue temprano, tardío o normal.
 const getEntryTimeClass = (value) => {
   if (isEarlyArrival(value)) return styles.timeEarly;
   if (isLateArrival(value)) return styles.timeLate;
   return '';
 };
 
+// Devuelve la clase CSS para resaltar la salida según el rango horario esperado.
 const getExitTimeClass = (value) => {
   const minutes = parseTimeMinutes(value);
   if (minutes === null) return '';
@@ -49,6 +55,7 @@ const getExitTimeClass = (value) => {
   return '';
 };
 
+// Divide los tiempos de registros en un arreglo para mostrarlos por chips en la fila del colaborador.
 const parseRecordTimes = (value) => {
   if (!value) return [];
   return String(value)
@@ -63,14 +70,17 @@ const parseRecordTimes = (value) => {
     .filter((record) => record.device === 'INTERNO' || record.device === 'EXTERNO');
 };
 
+// Selecciona el estilo visual del chip según el dispositivo de registro.
 const getRecordClass = (device) => {
   if (device === 'INTERNO') return styles.internalChip;
   if (device === 'EXTERNO') return styles.externalChip;
   return styles.recordChip;
 };
 
+// Obtiene la fecha actual del sistema para iniciar el resumen del día seleccionado.
 const getToday = () => new Date().toISOString().slice(0, 10);
 
+// Página de resumen diario: consolida ingresos, salidas, registros y novedades por colaborador.
 export default function SummaryPage() {
   const [date, setDate] = useState(getToday());
   const [search, setSearch] = useState('');
@@ -79,6 +89,7 @@ export default function SummaryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Consulta el resumen del día aplicando los filtros actuales y cargando los datos en el estado local.
   const fetchSummary = async (selectedDevice = device) => {
     if (!date) {
       setSummary([]);
@@ -129,11 +140,13 @@ export default function SummaryPage() {
     return () => clearTimeout(timer);
   }, [date, search, device]);
 
+  // Ejecuta la búsqueda manual del resumen cuando el usuario da clic en buscar.
   const handleSubmit = (event) => {
     event.preventDefault();
     fetchSummary(device);
   };
 
+  // Actualiza el filtro del dispositivo y vuelve a cargar el resumen con ese criterio.
   const handleDeviceChange = (nextDevice) => {
     setDevice(nextDevice);
     fetchSummary(nextDevice);

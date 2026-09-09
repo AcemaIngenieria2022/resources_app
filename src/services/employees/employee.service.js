@@ -1,3 +1,4 @@
+// Servicio para gestión de empleados, validaciones de FK y operaciones CRUD del módulo.
 import { AppError } from '@/lib/errors/AppError';
 import { query } from '@/lib/db/mysql';
 import {

@@ -13,6 +13,7 @@ import DashboardCard from '@/components/dashboard/cards/DashboardCard';
 import DashboardInsights from '@/components/dashboard/insights/DashboardInsights';
 import { useAuthContext } from '@/context/AuthContext';
 
+// Configura los accesos rápidos visibles en el panel principal del sistema.
 const dashboardCards = [
   {
     href: '/summary',
@@ -40,6 +41,7 @@ const dashboardCards = [
   },
 ];
 
+// Página principal del dashboard con tarjetas de acceso y panel de insights de asistencia.
 export default function DashboardPage() {
   const [cardOrder, setCardOrder] = useState(dashboardCards.map((card) => card.href));
   const [draggedCard, setDraggedCard] = useState(null);

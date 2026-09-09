@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, attlogQuery } from '@/lib/db/mysql';
 
+// Endpoint que devuelve la lista de empleados ausentes para una fecha determinada.
 export async function GET(request) {
   const url = new URL(request.url);
   const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);

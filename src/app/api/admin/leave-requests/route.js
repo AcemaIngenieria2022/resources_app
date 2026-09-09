@@ -1,6 +1,7 @@
 import { okResponse, errorResponse } from '@/lib/utils/api-response';
 import * as leaveRequestService from '@/services/leave-requests/leave-request.service';
 
+// GET: obtiene novedades por estado, colaborador o rol de quien las consulta.
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -32,6 +33,7 @@ export async function GET(request) {
   }
 }
 
+// POST: centraliza las acciones de revisión, actualización de estado y eliminación de novedades.
 export async function POST(request) {
   try {
     const body = await request.json();

@@ -1,7 +1,9 @@
 import { query } from '@/lib/db/mysql';
 
+// Guarda si la columna de observación de rechazo existe en la tabla de solicitudes.
 let rejectionObservationColumn;
 
+// Verifica si el esquema actual incluye la columna usada para registrar comentarios de rechazo.
 async function hasRejectionObservationColumn() {
   if (rejectionObservationColumn === undefined) {
     const rows = await query(
@@ -16,12 +18,14 @@ async function hasRejectionObservationColumn() {
   return rejectionObservationColumn;
 }
 
+// Construye la selección de la columna de observación de rechazo cuando la base de datos lo soporta.
 async function rejectionObservationSelect() {
   return (await hasRejectionObservationColumn())
     ? 'lr.rejection_observation'
     : 'NULL AS rejection_observation';
 }
 
+// Genera los campos de trazabilidad necesarios para mostrar fechas y responsables de aprobaciones previas.
 async function traceabilitySelect() {
   const columns = await getTraceabilityColumns();
   return [
@@ -32,6 +36,7 @@ async function traceabilitySelect() {
   ].join(',\n        ');
 }
 
+// Detecta qué columnas de trazabilidad existen para adaptar la consulta al esquema actual.
 async function getTraceabilityColumns() {
   const rows = await query(
     `SELECT column_name
@@ -43,8 +48,10 @@ async function getTraceabilityColumns() {
   return new Set(rows.map((row) => row.column_name));
 }
 
+// Cachea si la tabla de historial de cambios de leave requests está disponible.
 let leaveRequestHistoryTableExists;
 
+// Verifica si existe la tabla de historial para enlazar eventos de aprobación, rechazo y finalización.
 async function hasLeaveRequestHistoryTable() {
   if (leaveRequestHistoryTableExists === undefined) {
     const rows = await query(
@@ -59,6 +66,7 @@ async function hasLeaveRequestHistoryTable() {
   return leaveRequestHistoryTableExists;
 }
 
+// Recupera el historial asociado a múltiples solicitudes para enriquecer la visualización y el timeline.
 async function getLeaveRequestHistoryByIds(requestIds = []) {
   if (!requestIds.length) return new Map();
   if (!(await hasLeaveRequestHistoryTable())) return new Map();
@@ -93,6 +101,7 @@ async function getLeaveRequestHistoryByIds(requestIds = []) {
   return historyByRequest;
 }
 
+// Añade al resultado principal los eventos de historial y los campos derivados de aprobación/rechazo.
 async function hydrateLeaveRequestsWithHistory(rows = []) {
   if (!rows.length) return rows;
 
@@ -121,6 +130,7 @@ async function hydrateLeaveRequestsWithHistory(rows = []) {
   });
 }
 
+// Actualiza automáticamente las solicitudes vencidas para pasar al estado expirado y evitar solicitudes pendientes eternas.
 async function autoRejectExpiredLeaveRequests() {
   const rows = await query(
     `SELECT lr.id, s.code AS state_code
@@ -149,6 +159,7 @@ async function autoRejectExpiredLeaveRequests() {
   return rows.length;
 }
 
+// Obtiene el listado principal de solicitudes, aplicando la expiración automática antes de consultar los datos.
 export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
   await autoRejectExpiredLeaveRequests();
 
@@ -206,6 +217,7 @@ export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
   return hydrateLeaveRequestsWithHistory(rows);
 }
 
+// Consulta una solicitud puntual para usarla en detalle, revisión o edición.
 export async function findLeaveRequestById(id) {
   await autoRejectExpiredLeaveRequests();
 
@@ -263,6 +275,7 @@ export async function findLeaveRequestById(id) {
   return hydratedRows?.[0] ?? null;
 }
 
+// Recupera todas las solicitudes de un empleado para mostrarlas en su historial personal.
 export async function findLeaveRequestsByEmployeeId(employee_id) {
   await autoRejectExpiredLeaveRequests();
 
@@ -319,6 +332,7 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
   return hydrateLeaveRequestsWithHistory(rows);
 }
 
+// Obtiene solicitudes filtradas por un estado concreto, útil para paneles y reportes específicos.
 export async function findLeaveRequestsByStatus(status) {
   await autoRejectExpiredLeaveRequests();
 
@@ -375,6 +389,7 @@ export async function findLeaveRequestsByStatus(status) {
   return hydrateLeaveRequestsWithHistory(rows);
 }
 
+// Actualiza únicamente el campo de estado visible de la solicitud sin tocar la lógica de revisión.
 export async function updateLeaveRequestStatus(id, status) {
   const result = await query(
     `UPDATE leave_requests SET status = ? WHERE id = ?`,
@@ -383,6 +398,7 @@ export async function updateLeaveRequestStatus(id, status) {
   return result;
 }
 
+// Ejecuta la transición real de una solicitud entre estados según el rol y la acción de revisión.
 export async function reviewLeaveRequest({ id, action, role, userId, userName, observation }) {
   const rows = await query(
     `SELECT lr.id, lr.leader_id, s.code AS state_code
@@ -523,6 +539,7 @@ export async function reviewLeaveRequest({ id, action, role, userId, userName, o
   return { id: Number(id), state: transition.to, action, rejectedBy: isRejection ? userName : null, observation: isRejection ? String(observation).trim() : null };
 }
 
+// Elimina físicamente una solicitud de la base de datos cuando se confirma la acción de borrado.
 export async function deleteLeaveRequest(id) {
   const result = await query(
     `DELETE FROM leave_requests WHERE id = ?`,
@@ -531,11 +548,13 @@ export async function deleteLeaveRequest(id) {
   return result;
 }
 
+// Cuenta todas las solicitudes registradas para alimentar estadísticas globales.
 export async function countLeaveRequests() {
   const rows = await query('SELECT COUNT(*) AS total FROM leave_requests');
   return Number(rows?.[0]?.total ?? 0);
 }
 
+// Cuenta cuántas solicitudes tienen un estado específico para sumar métricas por tipo.
 export async function countLeaveRequestsByStatus(status) {
   const rows = await query(
     'SELECT COUNT(*) AS total FROM leave_requests WHERE status = ?',
@@ -544,6 +563,7 @@ export async function countLeaveRequestsByStatus(status) {
   return Number(rows?.[0]?.total ?? 0);
 }
 
+// Cuenta las solicitudes asignadas a un líder, con posibilidad de filtrar por estado para paneles diferenciales.
 export async function countLeaveRequestsByLeader(leaderUserId, status = null) {
   const statusClause = status ? 'AND lr.status = ?' : '';
   const params = status ? [Number(leaderUserId), status] : [Number(leaderUserId)];

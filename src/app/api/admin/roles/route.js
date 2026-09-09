@@ -1,6 +1,7 @@
 import { query } from '@/lib/db/mysql';
 import { errorResponse, okResponse } from '@/lib/utils/api-response';
 
+// GET: devuelve la lista de roles disponibles para los formularios de administración.
 export async function GET() {
   try {
     const roles = await query(

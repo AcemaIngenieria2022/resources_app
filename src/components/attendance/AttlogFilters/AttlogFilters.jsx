@@ -3,6 +3,7 @@
     import { faFileLines, faMagnifyingGlass, faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
     import styles from './AttlogFilters.module.css';
 
+    // Componente reutilizable para los filtros principales de asistencia: fecha, búsqueda, dispositivo y exportación.
     export default function AttlogFilters({
         date,
         toDate,
@@ -27,17 +28,23 @@
         selectedEmployeeIds = [],
         onEmployeeToggle,
         }) {
+    // Mantiene el dispositivo seleccionado localmente para reflejar cambios rápidos en la interfaz.
+    // Esto permite actualizar el estado visual sin esperar a que el padre vuelva a renderizar.
     const [localDevice, setLocalDevice] = useState(device);
 
     useEffect(() => {
         setLocalDevice(device);
     }, [device]);
 
+    // Actualiza el filtro de dispositivo cuando el usuario selecciona un botón de la barra.
+    // Se sincroniza el valor local y el callback del padre para mantener ambos estados congruentes.
     const handleDeviceClick = (d) => {
         setLocalDevice(d);
         if (onDeviceChange) onDeviceChange(d);
     };
 
+    // Limpia el contenido de búsqueda cuando el usuario solicita borrar el texto ingresado.
+    // Si el componente padre expone un callback, lo invoca para resetear también el estado global.
     const handleClear = () => {
         if (onClearSearch) onClearSearch();
     };

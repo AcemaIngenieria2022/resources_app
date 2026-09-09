@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+
+// Formulario público para registrar una novedad desde la vista externa de colaboradores.
 import styles from './page.module.css';
 
 const initialForm = {

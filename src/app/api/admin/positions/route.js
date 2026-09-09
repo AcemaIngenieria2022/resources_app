@@ -2,6 +2,7 @@ import { AppError } from '@/lib/errors/AppError';
 import { okResponse, errorResponse } from '@/lib/utils/api-response';
 import * as posService from '@/services/admin/position.service';
 
+// GET: obtiene la lista de cargos disponibles para la administración.
 export async function GET() {
   try {
     const { positions, total } = await posService.listPositions({ limit: 500 });
@@ -14,6 +15,7 @@ export async function GET() {
   }
 }
 
+// POST: ejecuta las acciones add, update y delete para mantener los cargos del sistema.
 export async function POST(request) {
   try {
     const body = await request.json();

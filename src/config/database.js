@@ -1,3 +1,4 @@
+// Configuración principal de la base de datos del sistema.
 export const databaseConfig = {
   host: process.env.DB_HOST || '127.0.0.1',
   port: process.env.DB_PORT || 3306,
@@ -7,6 +8,7 @@ export const databaseConfig = {
   dialect: 'mysql',
 };
 
+// Configuración opcional para la base de datos de logs/attlog, reutilizando los parámetros base cuando no se especifican.
 export const attlogDatabaseConfig = {
   host: process.env.ATTLOG_DB_HOST || databaseConfig.host,
   port: process.env.ATTLOG_DB_PORT || databaseConfig.port,

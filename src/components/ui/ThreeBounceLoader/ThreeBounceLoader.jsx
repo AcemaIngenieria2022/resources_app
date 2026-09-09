@@ -2,6 +2,7 @@
 
 import styles from './ThreeBounceLoader.module.css';
 
+// Loader reutilizable para indicar carga con tres puntos animados y personalización visual básica.
 export default function ThreeBounceLoader({ 
   size = 8, 
   className = '',

@@ -1,5 +1,6 @@
 import { attlogQuery, query } from '@/lib/db/mysql';
 
+// Repositorio para consultar marcaciones provenientes de la base de attlog y enriquecerlas con datos del empleado.
 export async function findAttlog({ limit = 'all', date = '', fromDate = '', toDate = '', search = '', device = '', employeedID = '' , sortBy = 'authDateTime', sortDir = 'desc' } = {}) {
   const conditions = [];
   const params = [];

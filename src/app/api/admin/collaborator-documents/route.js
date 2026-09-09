@@ -2,6 +2,7 @@ import { AppError } from '@/lib/errors/AppError';
 import { okResponse, errorResponse } from '@/lib/utils/api-response';
 import * as docService from '@/services/collaborators/collaborator-document.service';
 
+// GET: devuelve documentos de colaboradores, pudiendo filtrarlos por empleado o recuperar el conjunto general.
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -22,6 +23,7 @@ export async function GET(request) {
   }
 }
 
+// POST: ejecuta las acciones add, update y delete sobre los documentos asociados a un empleado.
 export async function POST(request) {
   try {
     const body = await request.json();

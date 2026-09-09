@@ -1,6 +1,7 @@
 import pool from '@/lib/db/mysql';
 import { errorResponse, okResponse } from '@/lib/utils/api-response';
 
+// GET: sincroniza la tabla de líderes con los empleados que cumplen el rol requerido y devuelve la relación vigente.
 export async function GET() {
   try {
     await pool.execute(`
@@ -38,6 +39,7 @@ export async function GET() {
   }
 }
 
+// POST: asigna o limpia el líder de un colaborador según la acción recibida.
 export async function POST(request) {
   const connection = await pool.getConnection();
 
