@@ -100,21 +100,21 @@
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1.25rem;
-          background: #3b82f6;
-          color: white;
-          border: none;
+          background: white;
+          color: #334155;
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
           font-weight: 500;
           font-size: 0.875rem;
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+          box-shadow: none;
         }
 
         .refreshBtn:hover:not(:disabled) {
-          background: #2563eb;
+          background: #f1f5f9;
+          border-color: #cbd5e1;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
         }
 
         .refreshBtn:disabled {
@@ -133,7 +133,7 @@
         .insightsGrid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          grid-auto-rows: 270px;
+          grid-auto-rows: minmax(200px, auto);
           gap: 1rem;
           align-items: stretch;
         }
@@ -214,7 +214,7 @@
           width: 100%;
           min-width: 0;
           box-sizing: border-box;
-          height: 100%;
+          height: auto;
           display: flex;
           flex-direction: column;
           opacity: 1;
@@ -308,7 +308,61 @@
           transform: rotate(-90deg);
           transform-origin: 60px 60px;
           animation: ringDraw 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          filter: drop-shadow(0 0 10px rgba(54, 187, 167, 0.35));
         }
+
+        /* Estilos para drag and drop */
+.insightGridItem {
+  position: relative;
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.insightGridItem:active {
+  cursor: grabbing;
+}
+
+.insightGridItem.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Handle de arrastre */
+.dragHandle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #94a3b8;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 16px;
+  z-index: 10;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.insightGridItem:hover .dragHandle {
+  opacity: 1;
+}
+
+.dragHandle:hover {
+  color: #334155;
+  background: rgba(255, 255, 255, 1);
+}
+
+.insightGridItem:active .dragHandle {
+  cursor: grabbing;
+}
+
+/* Animación de número */
+.number-pop {
+  display: inline-block;
+  transition: all 0.3s ease;
+  font-variant-numeric: tabular-nums;
+}
 
         @keyframes ringDraw {
           from { stroke-dashoffset: 282.74; }
@@ -405,6 +459,118 @@
         .totalMarkings span {
           color: #94a3b8;
           font-size: 0.875rem;
+        }
+
+        .metricBar {
+          margin-top: 0.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
+        }
+
+        .attendanceComparison {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-top: 0.5rem;
+        }
+
+        .attendanceComparisonRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          color: #475569;
+          font-size: 0.875rem;
+        }
+
+        .attendanceComparisonRow strong {
+          color: #0f172a;
+          font-size: 1.125rem;
+          font-weight: 700;
+        }
+
+        .attendanceComparisonMeta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 600;
+        }
+
+        .attendanceComparisonBars {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+        }
+
+        .compactMetricBar {
+          margin-top: 0;
+        }
+
+        .metricBarLabel {
+          display: flex;
+          justify-content: flex-end;
+          font-size: 0.68rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .metricBarTrack {
+          width: 100%;
+          height: 8px;
+          border-radius: 999px;
+          background: #e2e8f0;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .metricBarFill {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .metricBarFill::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.4), rgba(255,255,255,0.18));
+          transform: translateX(-100%);
+          animation: metricShimmer 1.8s ease-in-out infinite;
+        }
+
+        .activeFill {
+          background: linear-gradient(90deg, #22c55e, #36bba7);
+        }
+
+        .markingsFill {
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+
+        .attendanceFill {
+          background: linear-gradient(90deg, #f59e0b, #f2b84b);
+        }
+
+        .metricBarFill,
+        .statusTrack span,
+        .typeBar span,
+        .absenceTrack span,
+        .barTrack span {
+          box-shadow: 0 0 12px rgba(54, 187, 167, 0.24);
+        }
+
+        .absenceTrack span {
+          box-shadow: 0 0 12px rgba(242, 184, 75, 0.26);
+        }
+
+        @keyframes metricShimmer {
+          0% { transform: translateX(-100%); }
+          45% { transform: translateX(100%); }
+          100% { transform: translateX(100%); }
         }
 
         .markingSummary {
@@ -628,6 +794,32 @@
           color: #0f172a;
         }
 
+        .dailyBarPercentages {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.35rem;
+          width: 100%;
+          min-height: 0.9rem;
+          margin-bottom: 0.2rem;
+          font-size: 0.6rem;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        .dailyBarPercent {
+          min-width: 1.3rem;
+          text-align: center;
+        }
+
+        .greenPercent {
+          color: #16a34a;
+        }
+
+        .yellowPercent {
+          color: #d39a2c;
+        }
+
         .dailyAverages {
           display: flex;
           gap: 0.5rem;
@@ -711,6 +903,7 @@
           stroke-dashoffset: 500;
           animation: drawLine 1.2s ease forwards;
           animation-delay: 0.3s;
+          filter: drop-shadow(0 0 6px rgba(54, 187, 167, 0.35));
         }
 
         .exitLine {
@@ -723,6 +916,7 @@
           stroke-dashoffset: 500;
           animation: drawLine 1.2s ease forwards;
           animation-delay: 0.5s;
+          filter: drop-shadow(0 0 6px rgba(242, 184, 75, 0.35));
         }
 
         @keyframes drawLine {

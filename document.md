@@ -37,11 +37,14 @@ La aplicación usa el patrón App Router de Next.js y separa claramente:
 14. [Reportes automáticos](#14-reportes-automáticos)
 15. [Patrones de diseño que usa la app](#15-patrones-de-diseño-que-usa-la-app)
 16. [Puntos críticos / mejores prácticas para desarrolladores](#16-puntos-críticos--mejores-prácticas-para-desarrolladores)
-17. [Recomendaciones para extender la app](#17-recomendaciones-para-extender-la-app)
-18. [Resumen ejecutivo](#18-resumen-ejecutivo)
-19. [Comandos útiles rápidos](#19-comandos-útiles-rápidos)
-20. [Repositorio de GitHub](#20-repositorio-de-github)
-21. [Fin del documento](#21-fin-del-documento)
+17. [Posibles daños, errores e impactos](#17-posibles-daños-errores-e-impactos)
+18. [Guía de diagnóstico y solución](#18-guía-de-diagnóstico-y-solución)
+19. [Seguridad, respaldo y recuperación](#19-seguridad-respaldo-y-recuperación)
+20. [Recomendaciones para extender la app](#20-recomendaciones-para-extender-la-app)
+21. [Resumen ejecutivo](#21-resumen-ejecutivo)
+22. [Comandos útiles rápidos](#22-comandos-útiles-rápidos)
+23. [Repositorio de GitHub](#23-repositorio-de-github)
+24. [Fin del documento](#24-fin-del-documento)
 
 ---
 
@@ -609,7 +612,190 @@ La sesión y el usuario viven en `AuthContext` para evitar prop drilling.
 
 ---
 
-## 17. Recomendaciones para extender la app
+### 16.1 Flujo recomendado para investigar un fallo
+
+Cuando aparezca un problema, no conviene modificar varias capas al mismo tiempo. Se recomienda seguir este orden:
+
+1. Registrar fecha, hora, usuario afectado, pantalla, acción realizada y mensaje exacto.
+2. Reproducir el problema con los mismos datos, sin usar información real innecesaria.
+3. Revisar la consola del navegador y la solicitud HTTP en la pestaña Network.
+4. Revisar la terminal de Next.js y buscar el error original, no solo el mensaje visual.
+5. Determinar si el fallo está en la interfaz, API, servicio, repositorio o base de datos.
+6. Corregir la capa responsable y ejecutar `npm run lint` y `npm run build` antes de publicar.
+7. Probar el caso correcto, el caso inválido y el caso de permisos insuficientes.
+
+La interfaz puede mostrar un mensaje entendible, pero la causa técnica debe conservarse en los logs sin exponer contraseñas, tokens ni datos personales.
+
+## 17. Posibles daños, errores e impactos
+
+Esta sección funciona como una matriz preventiva. Un “daño” es el impacto que tendría una configuración incorrecta, un cambio sin validar o una indisponibilidad del sistema.
+
+### 17.1 Instalación y dependencias
+
+**Síntoma:** aparece `Module not found`, una dependencia no se puede importar o Next.js no inicia.
+
+**Causas:** no se ejecutó `npm install`, el lockfile está desactualizado o la versión de Node.js no es compatible.
+
+**Impacto:** la aplicación no arranca, no se generan reportes y el equipo queda sin acceso.
+
+**Solución:** comprobar `node --version`, ejecutar `npm install`, verificar que `package.json` y el lockfile estén sincronizados y repetir `npm run dev`. Las dependencias nuevas deben quedar registradas en `package.json`.
+
+### 17.2 Conexión con MySQL
+
+**Síntoma:** `Can't connect to database`, tiempos de espera, errores de autenticación o pantallas sin datos.
+
+**Causas:** MySQL detenido, host o puerto incorrectos, usuario sin permisos, base inexistente o `.env.local` no cargado.
+
+**Impacto:** no se puede iniciar sesión, consultar colaboradores, leer asistencia ni aprobar solicitudes. Una escritura puede quedar incompleta si no usa transacciones.
+
+**Solución:** verificar el servicio MySQL y las credenciales, revisar `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`, y confirmar las variables `ATTLOG_*` para asistencia. Después de cambiar variables, reiniciar el servidor.
+
+### 17.3 Migraciones incompletas
+
+**Síntoma:** una columna no existe, falla una clave foránea o una consulta funciona en una máquina y en otra no.
+
+**Causas:** migraciones de `db/migrations` ejecutadas fuera de orden o esquema desactualizado.
+
+**Impacto:** pueden fallar roles, estados de solicitudes, archivos adjuntos, horas de ausencia y vínculos entre usuarios y empleados.
+
+**Solución:** hacer respaldo, revisar qué migraciones faltan, ejecutarlas en orden y verificar las tablas y columnas resultantes. No eliminar estructuras en producción sin confirmar dependencias y plan de restauración.
+
+### 17.4 Autenticación y sesión
+
+**Síntoma:** el login rechaza credenciales válidas, redirige continuamente o el menú no corresponde al usuario.
+
+**Causas:** usuario inactivo, datos antiguos en `localStorage`, respuesta de login diferente a la esperada o cambios en `AuthContext`.
+
+**Impacto:** bloqueo de usuarios o acceso visual a opciones incorrectas. Si la API no valida permisos, puede existir modificación no autorizada de información.
+
+**Solución:** comprobar el estado del usuario, limpiar solo `authUser` para descartar una sesión obsoleta, revisar `/api/auth/login` y validar permisos en middleware y API. Ocultar un botón no reemplaza la autorización del servidor.
+
+### 17.5 Roles y permisos
+
+**Síntoma:** un supervisor ve otro departamento, un líder no puede aprobar o un usuario obtiene una opción administrativa.
+
+**Causas:** rol incorrecto, relación líder-empleado incompleta, filtro ausente o validación solo en frontend.
+
+**Impacto:** divulgación de datos laborales, aprobación indebida o modificación de información sensible.
+
+**Solución:** revisar usuario, rol, estado y relaciones; comprobar `authMiddleware`, `permissionMiddleware` y `roleMiddleware`; probar con un usuario de cada rol y verificar respuestas `401` y `403`.
+
+### 17.6 Asistencia ausente o incorrecta
+
+**Síntoma:** faltan entradas o salidas, los horarios aparecen desplazados o el reporte tiene cantidades inesperadas.
+
+**Causas:** base `attlog` equivocada, zona horaria diferente, registros duplicados, reloj del dispositivo desconfigurado o empleado sin identificador vinculado.
+
+**Impacto:** reportes laborales incorrectos y decisiones administrativas basadas en datos incompletos.
+
+**Solución:** comparar hora del dispositivo y servidor, confirmar `ATTLOG_DB_*`, revisar el identificador del empleado y consultar los registros originales. Antes de corregir, guardar evidencia y autorización.
+
+### 17.7 Solicitudes de permisos y novedades
+
+**Síntoma:** una solicitud no cambia de estado, no llega al líder, se aprueba dos veces o desaparece un adjunto.
+
+**Causas:** transición inválida, aprobador sin relación, doble envío, archivo no guardado o actualización parcial.
+
+**Impacto:** pérdida de trazabilidad, aprobación errónea y conflictos entre RRHH y usuarios.
+
+**Solución:** revisar estado e historial, validar autorización en el servicio, impedir transiciones duplicadas y usar transacciones para solicitud, historial y archivo. Validar tamaño, extensión y ubicación de cada adjunto.
+
+### 17.8 Reportes PDF y Excel
+
+**Síntoma:** archivo vacío, empleados duplicados, departamentos desordenados, horas incorrectas o archivo no generado.
+
+**Causas:** consulta sin datos, fecha mal formateada, columnas cambiadas, colaborador sin departamento, error del generador o falta de permisos en `reports/`.
+
+**Impacto:** envío de información incompleta a gerencia y necesidad de reprocesar la jornada.
+
+**Solución:** generar una fecha conocida, comprobar la cantidad de registros recuperados, comparar PDF y Excel, revisar permisos de escritura y conservar el archivo original. Los registros sin departamento deben quedar en `Sin departamento`.
+
+### 17.9 Correo y tareas programadas
+
+**Síntoma:** el reporte se genera pero no llega, llega sin adjuntos o el scheduler no ejecuta la tarea.
+
+**Causas:** SMTP inaccesible, contraseña de aplicación inválida, destinatario incorrecto, zona horaria del cron, proceso detenido o permisos insuficientes.
+
+**Impacto:** los responsables trabajan con información desactualizada.
+
+**Solución:** separar la prueba de generación de la prueba de envío, revisar `scripts/reports/config.js`, comprobar el puerto SMTP, ejecutar `node scripts/reports/send.js YYYY-MM-DD` manualmente y revisar los logs. Controlar reintentos para no enviar duplicados.
+
+### 17.10 Exposición de datos o credenciales
+
+**Síntoma:** contraseñas en archivos versionados, reportes públicos, tokens en logs o endpoints administrativos sin autorización.
+
+**Causas:** secretos escritos en código, carpetas expuestas, validación solo en cliente o logs demasiado detallados.
+
+**Impacto:** acceso no autorizado a información laboral, correo, base de datos y documentos.
+
+**Solución:** revocar secretos expuestos, usar variables de entorno, restringir `reports/` y `storage/uploads/`, revisar el historial de Git y proteger cada endpoint. Los archivos subidos deben descargarse mediante una ruta autorizada.
+
+## 18. Guía de diagnóstico y solución
+
+### 18.1 La aplicación no abre
+
+1. Ejecutar `node --version` y comprobar compatibilidad con Next.js 16.
+2. Ejecutar `npm install` y luego `npm run lint`.
+3. Revisar el primer error de la terminal; los siguientes pueden ser consecuencias.
+4. Corregir el archivo indicado y repetir `npm run build`.
+
+### 18.2 La página carga, pero no muestra datos
+
+1. Revisar la solicitud en Network.
+2. Interpretar `401` como sesión, `403` como permiso, `404` como ruta y `500` como error del servidor.
+3. Revisar el JSON, que usa `success`, `data`, `error` y `status`.
+4. Para `500`, revisar terminal y MySQL antes de modificar el componente visual.
+
+### 18.3 Se guardan datos parciales
+
+Cuando una operación modifica varias tablas y una consulta falla, se debe usar una transacción: iniciar, validar, confirmar con `COMMIT` y revertir con `ROLLBACK`. La interfaz no debe indicar éxito si solo se guardó una parte.
+
+### 18.4 Corrección manual en producción
+
+1. Confirmar identificador, motivo y autorización.
+2. Respaldar el registro original.
+3. Revisar relaciones, historial y auditoría.
+4. Ejecutar una consulta limitada por identificador; nunca un `UPDATE` sin `WHERE`.
+5. Confirmar el resultado y documentar responsable y fecha.
+
+### 18.5 Cierre de un incidente
+
+- Se identificó la causa y no solo el síntoma.
+- Se verificó que no hubiera pérdida o exposición de datos.
+- Se probó un caso válido, uno inválido y uno sin permisos.
+- Se ejecutaron `npm run lint` y `npm run build` si hubo cambios de código.
+- Se registró la solución y una medida para evitar recurrencia.
+
+## 19. Seguridad, respaldo y recuperación
+
+### 19.1 Protección de credenciales
+
+- No publicar `.env.local`, contraseñas SMTP, secretos JWT ni credenciales MySQL.
+- Usar una cuenta de base de datos con permisos mínimos; evitar `root` en producción.
+- Cambiar cualquier credencial expuesta en repositorio, captura o log.
+- No imprimir contraseñas ni tokens en errores.
+
+### 19.2 Protección de archivos
+
+- Restringir acceso a `reports/` y `storage/uploads/`.
+- Validar extensión, tamaño y tipo real de archivos.
+- Evitar nombres predecibles para documentos sensibles.
+- Mantener trazabilidad de aprobaciones, rechazos, correcciones y descargas.
+
+### 19.3 Respaldo mínimo
+
+El respaldo debe incluir base de datos, configuración segura, `storage/uploads/` y reportes que deban conservarse. Se debe probar periódicamente la restauración, porque un respaldo nunca restaurado no garantiza recuperación. Registrar fecha, responsable, ubicación, período cubierto y resultado de la verificación.
+
+### 19.4 Recuperación ante caída
+
+1. Identificar si la caída corresponde a la app, MySQL, red o SMTP.
+2. Detener procesos automáticos que puedan duplicar escrituras o correos.
+3. Restaurar base de datos y archivos respetando la versión del esquema.
+4. Probar login, permisos, asistencia, solicitudes y reportes.
+5. Reactivar el scheduler solo cuando no vaya a enviar duplicados.
+6. Registrar duración, impacto, solución y acción preventiva.
+
+## 20. Recomendaciones para extender la app
 
 ### Si se agrega una nueva entidad
 1. Crear servicio en `src/services/<modulo>/`
@@ -629,7 +815,7 @@ La sesión y el usuario viven en `AuthContext` para evitar prop drilling.
 
 ---
 
-## 18. Resumen ejecutivo
+## 21. Resumen ejecutivo
 
 La aplicación es un sistema interno de RRHH / asistencia basado en Next.js con arquitectura modular, separación de responsabilidades y acceso a MySQL. Tiene un flujo bien definido de autenticación, navegación por roles, gestión de empleados y solicitudes, y un módulo de reportes automatizados.
 
@@ -647,7 +833,7 @@ Con eso se comprende el flujo completo de la app.
 
 ---
 
-## 19. Comandos útiles rápidos
+## 22. Comandos útiles rápidos
 
 ```bash
 npm install
@@ -660,10 +846,10 @@ npm run reports:schedule
 
 ---
 
-## 20. Repositorio de GitHub
+## 23. Repositorio de GitHub
 
 - AcemaIngenieria2022
 - Acema2026.s
 
-## 21. Fin del documento
+## 24. Fin del documento
 

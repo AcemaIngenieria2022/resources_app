@@ -76,6 +76,8 @@ export async function findSummary({ date = '', search = '', device = 'all' } = {
       MIN(CASE WHEN UPPER(diviceName) = 'EXTERNO' THEN authDateTime END) AS first_entry,
       MAX(CASE WHEN UPPER(diviceName) = 'INTERNO' THEN authDateTime END) AS last_exit,
       COUNT(*) AS record_count,
+      SUM(CASE WHEN UPPER(diviceName) = 'INTERNO' THEN 1 ELSE 0 END) AS internal_count,
+      SUM(CASE WHEN UPPER(diviceName) = 'EXTERNO' THEN 1 ELSE 0 END) AS external_count,
       GROUP_CONCAT(CONCAT(TIME_FORMAT(authDateTime, '%H:%i'), '|', UPPER(diviceName)) ORDER BY authDateTime SEPARATOR '||') AS record_times
     FROM attlog
     WHERE ${attlogConditions.join(' AND ')}
