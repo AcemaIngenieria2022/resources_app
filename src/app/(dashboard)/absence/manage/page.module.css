@@ -242,6 +242,25 @@
   vertical-align: middle;
 }
 
+.sortHeaderButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sortHeaderButton:hover {
+  color: #36bba7;
+}
+
 .employeeCell {
   padding-top: 10px;
   padding-bottom: 10px;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -40,6 +40,7 @@ export default function ManageAbsencesPage() {
   const [editing, setEditing] = useState(null);
   const [registering, setRegistering] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [sortConfig, setSortConfig] = useState({ key: 'absence_date', direction: 'desc' });
 
   const showAlert = useCallback((text, type = "success") => {
     setMessage({ type, text });
@@ -59,6 +60,64 @@ export default function ManageAbsencesPage() {
     const payload = await response.json();
     setEmployees(payload?.data || []);
   }, []);
+
+  const handleSort = (key) => {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortLabel = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : '');
+
+  const getSortValue = (record, key) => {
+    switch (key) {
+      case 'personName':
+        return String(record.personName || '').toLocaleLowerCase('es');
+      case 'department_name':
+        return String(record.department_name || 'sin departamento').toLocaleLowerCase('es');
+      case 'absence_date':
+        return new Date(record.absence_date || 0).getTime();
+      case 'type':
+        return String(record.type || '').toLocaleLowerCase('es');
+      case 'reason':
+        return String(record.reason || '').toLocaleLowerCase('es');
+      case 'notes':
+        return String(record.notes || 'sin notas').toLocaleLowerCase('es');
+      case 'state_name':
+        return String(record.state_name || '').toLocaleLowerCase('es');
+      default:
+        return String(record[key] || '').toLocaleLowerCase('es');
+    }
+  };
+
+  const sortedRecords = useMemo(() => {
+    const rows = [...records];
+    rows.sort((first, second) => {
+      const firstValue = getSortValue(first, sortConfig.key);
+      const secondValue = getSortValue(second, sortConfig.key);
+      const comparison = typeof firstValue === 'number' && typeof secondValue === 'number'
+        ? firstValue - secondValue
+        : String(firstValue).localeCompare(String(secondValue), 'es', { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return rows;
+  }, [records, sortConfig]);
+
+  const sortedCancelledRecords = useMemo(() => {
+    const rows = [...cancelledRecords];
+    rows.sort((first, second) => {
+      const firstValue = getSortValue(first, sortConfig.key);
+      const secondValue = getSortValue(second, sortConfig.key);
+      const comparison = typeof firstValue === 'number' && typeof secondValue === 'number'
+        ? firstValue - secondValue
+        : String(firstValue).localeCompare(String(secondValue), 'es', { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return rows;
+  }, [cancelledRecords, sortConfig]);
 
   // Carga todas las novedades registradas y separa las canceladas para mostrarlas en una tabla distinta.
   const loadRecords = useCallback(async () => {
@@ -230,17 +289,17 @@ export default function ManageAbsencesPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Colaborador</th>
-                  <th>Departamento</th>
-                  <th>Fecha</th>
-                  <th>Tipo</th>
-                  <th>Motivo</th>
-                  <th>Notas</th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('personName')}>Colaborador{sortLabel('personName')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('department_name')}>Departamento{sortLabel('department_name')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('absence_date')}>Fecha{sortLabel('absence_date')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('type')}>Tipo{sortLabel('type')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('reason')}>Motivo{sortLabel('reason')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('notes')}>Notas{sortLabel('notes')}</button></th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {records.map((record) => {
+                {sortedRecords.map((record) => {
                   return (
                     <tr key={`${record.source}-${record.id}`}>
                       <td className={styles.employeeCell}>
@@ -337,17 +396,17 @@ export default function ManageAbsencesPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Colaborador</th>
-                  <th>Departamento</th>
-                  <th>Fecha</th>
-                  <th>Tipo</th>
-                  <th>Motivo</th>
-                  <th>Notas</th>
-                  <th>Estado</th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('personName')}>Colaborador{sortLabel('personName')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('department_name')}>Departamento{sortLabel('department_name')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('absence_date')}>Fecha{sortLabel('absence_date')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('type')}>Tipo{sortLabel('type')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('reason')}>Motivo{sortLabel('reason')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('notes')}>Notas{sortLabel('notes')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('state_name')}>Estado{sortLabel('state_name')}</button></th>
                 </tr>
               </thead>
               <tbody>
-                {cancelledRecords.map((record) => (
+                {sortedCancelledRecords.map((record) => (
                   <tr key={`${record.source}-${record.id}`}>
                     <td className={styles.employeeCell}>
                       <strong>{record.personName}</strong>

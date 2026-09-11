@@ -28,13 +28,20 @@ const buildMetrics = (summary = []) => {
   const activeEmployees = summary.length;
   const presentEmployees = summary.filter((row) => row.record_count > 0 || row.first_entry).length;
   const absentEmployees = activeEmployees - presentEmployees;
-  const lateEmployees = summary.filter((row) => parseMinutes(row.first_entry) > 7 * 60 + 5).length;
+  const lateEmployees = summary.filter((row) => row.first_entry && parseMinutes(row.first_entry) > 7 * 60 + 5).length;
+  const earlyEntryEmployees = summary.filter((row) => row.first_entry && parseMinutes(row.first_entry) <= 7 * 60 + 5).length;
+  const entryEmployees = lateEmployees + earlyEntryEmployees;
+  const exitEmployees = summary.filter((row) => row.last_exit).length;
+  const earlyExitEmployees = summary.filter((row) => row.last_exit && parseMinutes(row.last_exit) < 16 * 60 + 25).length;
+  const lateExitEmployees = summary.filter((row) => row.last_exit && parseMinutes(row.last_exit) >= 16 * 60 + 25).length;
   const internalMarkings = summary.reduce((accumulator, row) => accumulator + Number(row.internal_count || parseRecordTimes(row.record_times).filter((record) => record.device === 'INTERNO').length), 0);
   const externalMarkings = summary.reduce((accumulator, row) => accumulator + Number(row.external_count || parseRecordTimes(row.record_times).filter((record) => record.device === 'EXTERNO').length), 0);
   const totalMarkings = internalMarkings + externalMarkings;
   const attendanceRate = activeEmployees ? Math.round((presentEmployees / activeEmployees) * 100) : 0;
-  const lateRate = presentEmployees ? Math.round((lateEmployees / presentEmployees) * 100) : 0;
-  const earlyRate = presentEmployees ? Math.round(((presentEmployees - lateEmployees) / presentEmployees) * 100) : 0;
+  const lateRate = entryEmployees ? Math.round((lateEmployees / entryEmployees) * 100) : 0;
+  const earlyRate = entryEmployees ? Math.round((earlyEntryEmployees / entryEmployees) * 100) : 0;
+  const earlyExitRate = exitEmployees ? Math.round((earlyExitEmployees / exitEmployees) * 100) : 0;
+  const lateExitRate = exitEmployees ? Math.round((lateExitEmployees / exitEmployees) * 100) : 0;
 
   const recentMarkings = summary
     .flatMap((row) =>
@@ -74,9 +81,16 @@ const buildMetrics = (summary = []) => {
     attendanceRate,
     earlyRate,
     lateRate,
+    earlyExitRate,
+    lateExitRate,
     presentEmployees,
     absentEmployees,
     lateEmployees,
+    earlyEntryEmployees,
+    entryEmployees,
+    exitEmployees,
+    earlyExitEmployees,
+    lateExitEmployees,
     recentMarkings,
     departmentData,
     lineData: {

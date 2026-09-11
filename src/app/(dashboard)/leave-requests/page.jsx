@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -373,6 +373,7 @@ export default function LeaveRequestsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [alert, setAlert] = useState(null);
   const [detailModal, setDetailModal] = useState({ isOpen: false, data: null });
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const { user } = useAuthContext();
   const normalizedRole = String(user?.role || '').toLowerCase().replace(/[.\s]/g, '');
   const reviewRole = ['hr', 'rrhh'].includes(normalizedRole)
@@ -518,6 +519,51 @@ export default function LeaveRequestsPage() {
       lr.leave_class?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleSort = (key) => {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortLabel = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : '');
+
+  const getSortValue = (request, key) => {
+    switch (key) {
+      case 'form_full_name':
+        return String(request.form_full_name || '').toLocaleLowerCase('es');
+      case 'identification_id':
+        return String(request.identification_id || '').toLocaleLowerCase('es');
+      case 'leave_class':
+        return String(request.leave_class || '').toLocaleLowerCase('es');
+      case 'leader_name':
+        return String(request.leader_name || request.direct_supervisor || 'sin líder').toLocaleLowerCase('es');
+      case 'leader_id':
+        return String(request.leader_id || '').toLocaleLowerCase('es');
+      case 'status':
+        return String(request.state_name || request.status || '').toLocaleLowerCase('es');
+      case 'created_at':
+        return new Date(request.created_at || 0).getTime();
+      default:
+        return String(request[key] || '').toLocaleLowerCase('es');
+    }
+  };
+
+  const sortedRequests = useMemo(() => {
+    const rows = [...filteredRequests];
+    rows.sort((first, second) => {
+      const firstValue = getSortValue(first, sortConfig.key);
+      const secondValue = getSortValue(second, sortConfig.key);
+      const comparison = typeof firstValue === 'number' && typeof secondValue === 'number'
+        ? firstValue - secondValue
+        : String(firstValue).localeCompare(String(secondValue), 'es', { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return rows;
+  }, [filteredRequests, sortConfig]);
+
   const getStatusColor = (status) => {
     const colors = {
       pending: '#FFA500',
@@ -655,18 +701,18 @@ export default function LeaveRequestsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Nombre</th>
-                  <th>Identificación</th>
-                  <th>Tipo de novedad</th>
-                  <th>Supervisor</th>
-                  <th>ID líder</th>
-                  <th>Estado</th>
-                  <th>Fecha</th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('form_full_name')}>Nombre{sortLabel('form_full_name')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('identification_id')}>Identificación{sortLabel('identification_id')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('leave_class')}>Tipo de novedad{sortLabel('leave_class')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('leader_name')}>Supervisor{sortLabel('leader_name')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('leader_id')}>ID líder{sortLabel('leader_id')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('status')}>Estado{sortLabel('status')}</button></th>
+                  <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('created_at')}>Fecha{sortLabel('created_at')}</button></th>
                   <th style={{ width: '200px' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredRequests.map((lr) => {
+                {sortedRequests.map((lr) => {
                   const statusBadge = lr.state_name
                     ? { text: lr.state_name, color: getStatusColor(lr.state_code || lr.status) }
                     : getStatusBadge(lr.status);

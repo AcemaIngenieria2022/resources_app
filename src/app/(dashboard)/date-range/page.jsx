@@ -79,6 +79,27 @@ export default function DateRangePage() {
   const [expandedEmployees, setExpandedEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'personName', direction: 'asc' });
+
+  const handleSort = (key) => {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortLabel = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : '');
+
+  const compareValues = (left, right, key) => {
+    const leftValue = String(left?.[key] ?? '').toLocaleLowerCase('es');
+    const rightValue = String(right?.[key] ?? '').toLocaleLowerCase('es');
+    if (key === 'authDate') {
+      return new Date(left?.[key] || 0).getTime() - new Date(right?.[key] || 0).getTime();
+    }
+    return leftValue.localeCompare(rightValue, 'es', { numeric: true, sensitivity: 'base' });
+  };
 
   const loadEmployees = async () => {
     try {
@@ -140,8 +161,21 @@ export default function DateRangePage() {
       groups.get(key).details.push(item);
     });
 
-    return Array.from(groups.values());
-  }, [records, selectedEmployees]);
+    const grouped = Array.from(groups.values()).map((group) => ({
+      ...group,
+      details: [...group.details].sort((first, second) => {
+        const comparison = compareValues(first, second, 'authDate');
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      }),
+    }));
+
+    grouped.sort((first, second) => {
+      const comparison = compareValues(first, second, sortConfig.key);
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+
+    return grouped;
+  }, [records, selectedEmployees, sortConfig]);
 
   const toggleEmployee = (id) => {
     setEmployeeIds((current) =>
@@ -300,13 +334,13 @@ export default function DateRangePage() {
           <table className={styles.table}>
             <thead className={styles.summaryThead}>
               <tr>
-                <th className={styles.summaryTh}>Fecha</th>
-                <th className={styles.summaryTh}>Nombre</th>
-                <th className={styles.summaryTh}>Departamento</th>
-                <th className={styles.summaryTh}>Cargo</th>
-                <th className={styles.summaryTh}>Ingreso</th>
-                <th className={styles.summaryTh}>Salida</th>
-                <th className={styles.summaryTh}>Registros</th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('authDate')}>Fecha{sortLabel('authDate')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('personName')}>Nombre{sortLabel('personName')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('department_name')}>Departamento{sortLabel('department_name')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('position_name')}>Cargo{sortLabel('position_name')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('first_entry')}>Ingreso{sortLabel('first_entry')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('last_exit')}>Salida{sortLabel('last_exit')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('record_times')}>Registros{sortLabel('record_times')}</button></th>
               </tr>
             </thead>
             <tbody className={styles.summaryTbody}>

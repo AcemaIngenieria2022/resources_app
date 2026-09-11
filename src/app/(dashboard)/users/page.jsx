@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -245,6 +245,40 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+
+  const handleSort = (key) => {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortLabel = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : '');
+
+  const getSortableValue = (user, key) => {
+    if (key === 'id') return Number(user.id ?? 0);
+    if (key === 'role') return (roleConfig[user.role]?.label || user.role || '').toLocaleLowerCase('es');
+    if (key === 'status') return (statusConfig[getUserStatus(user)]?.label || getUserStatus(user) || '').toLocaleLowerCase('es');
+    if (key === 'created_at') return new Date(user.created_at || 0).getTime();
+    if (key === 'user') return `${user.first_name || ''} ${user.last_name || ''} ${user.email || ''}`.toLocaleLowerCase('es');
+    return String(user[key] ?? '').toLocaleLowerCase('es');
+  };
+
+  const sortedUsers = useMemo(() => {
+    const items = [...users];
+    items.sort((first, second) => {
+      const firstValue = getSortableValue(first, sortConfig.key);
+      const secondValue = getSortableValue(second, sortConfig.key);
+      const comparison = typeof firstValue === 'number' && typeof secondValue === 'number'
+        ? firstValue - secondValue
+        : String(firstValue).localeCompare(String(secondValue), 'es', { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return items;
+  }, [users, sortConfig]);
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -636,12 +670,12 @@ export default function UserManagementPage() {
           <table className={styles.table}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Usuario</th>
-              <th>Email</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Creado</th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('id')}>ID{sortLabel('id')}</button></th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('user')}>Usuario{sortLabel('user')}</button></th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('email')}>Email{sortLabel('email')}</button></th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('role')}>Rol{sortLabel('role')}</button></th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('status')}>Estado{sortLabel('status')}</button></th>
+              <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('created_at')}>Creado{sortLabel('created_at')}</button></th>
               <th className={styles.actionsHeader}>Acciones</th>
             </tr>
           </thead>
@@ -653,8 +687,8 @@ export default function UserManagementPage() {
                   <span>Cargando usuarios...</span>
                 </td>
               </tr>
-            ) : users.length > 0 ? (
-              users.map((user) => {
+            ) : sortedUsers.length > 0 ? (
+              sortedUsers.map((user) => {
                 const status = getUserStatus(user);
                 const role = roleConfig[user.role] || roleConfig.user;
                 const statusInfo = statusConfig[status] || statusConfig.active;

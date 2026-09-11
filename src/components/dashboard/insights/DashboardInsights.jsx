@@ -413,7 +413,7 @@ export default function DashboardInsights() {
               <span className="legendDot warningDot">●</span>
               <span>Antes de horario</span>
             </div>
-            <strong>{safeMetrics.earlyRate ?? 0}%</strong>
+            <strong>{safeMetrics.earlyExitRate ?? 0}%</strong>
           </div>
 
           <div className="attendanceComparisonRow">
@@ -421,7 +421,7 @@ export default function DashboardInsights() {
               <span className="legendDot presentDot">●</span>
               <span>Post horario</span>
             </div>
-            <strong>{safeMetrics.lateRate ?? 0}%</strong>
+            <strong>{safeMetrics.lateExitRate ?? 0}%</strong>
           </div>
         </div>
 
@@ -430,7 +430,7 @@ export default function DashboardInsights() {
             <div className="metricBarTrack">
               <span
                 className="metricBarFill attendanceFill"
-                style={{ width: `${Math.max(0, Math.min(100, safeMetrics.earlyRate ?? 0))}%` }}
+                style={{ width: `${Math.max(0, Math.min(100, safeMetrics.earlyExitRate ?? 0))}%` }}
               />
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function DashboardInsights() {
             <div className="metricBarTrack">
               <span
                 className="metricBarFill activeFill"
-                style={{ width: `${Math.max(0, Math.min(100, safeMetrics.lateRate ?? 0))}%` }}
+                style={{ width: `${Math.max(0, Math.min(100, safeMetrics.lateExitRate ?? 0))}%` }}
               />
             </div>
           </div>
@@ -646,7 +646,7 @@ export default function DashboardInsights() {
         <div className="insightHeader">
           <div>
             <h2>Promedio diario</h2>
-            <p>Comparación semanal</p>
+            <p>Comparación últimos 5 días</p>
           </div>
           <span className="insightBadge">Semana</span>
         </div>
@@ -694,8 +694,8 @@ export default function DashboardInsights() {
         </div>
 
         <div className="dailyAverages">
-          <span className="dailyAverageEntry">Temprano: {safeMetrics.earlyRate ?? 0}%</span>
-          <span className="dailyAverageExit">Tarde: {safeMetrics.lateRate ?? 0}%</span>
+          <span className="dailyAverageEntry">% Temprano:</span>
+          <span className="dailyAverageExit">% Tarde:</span>
         </div>
       </div>
     ),

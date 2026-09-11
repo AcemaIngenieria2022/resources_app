@@ -88,6 +88,24 @@ export default function SummaryPage() {
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'personName', direction: 'asc' });
+
+  const handleSort = (key) => {
+    setSortConfig((current) => {
+      if (current.key === key) {
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortLabel = (key) => (sortConfig.key === key ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : '');
+
+  const getSortValue = (item, key) => {
+    if (key === 'first_entry' || key === 'last_exit') return item[key] ? new Date(item[key]).getTime() : Number.NEGATIVE_INFINITY;
+    if (key === 'record_times') return parseRecordTimes(item[key]).length;
+    return String(item[key] ?? '').toLocaleLowerCase('es');
+  };
 
   // Consulta el resumen del día aplicando los filtros actuales y cargando los datos en el estado local.
   const fetchSummary = async (selectedDevice = device) => {
@@ -155,7 +173,18 @@ export default function SummaryPage() {
   const visibleCount = summary.length;
   const totalCount = summary.length;
 
-  const sortedSummary = useMemo(() => summary, [summary]);
+  const sortedSummary = useMemo(() => {
+    const list = [...summary];
+    list.sort((first, second) => {
+      const firstValue = getSortValue(first, sortConfig.key);
+      const secondValue = getSortValue(second, sortConfig.key);
+      const comparison = typeof firstValue === 'number' && typeof secondValue === 'number'
+        ? firstValue - secondValue
+        : String(firstValue).localeCompare(String(secondValue), 'es', { numeric: true, sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [summary, sortConfig]);
 
   const tableRef = useRef(null);
 
@@ -195,13 +224,13 @@ export default function SummaryPage() {
           <table className={styles.table}>
             <thead className={styles.summaryThead}>
               <tr>
-                <th className={styles.summaryTh}>Nombre</th>
-                <th className={styles.summaryTh}>Departamento</th>
-                <th className={styles.summaryTh}>Cargo</th>
-                <th className={styles.summaryTh}>Ingreso</th>
-                <th className={styles.summaryTh}>Salida</th>
-                <th className={styles.summaryTh}>Novedad</th>
-                <th className={styles.summaryTh}>Registros</th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('personName')}>Nombre{sortLabel('personName')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('department_name')}>Departamento{sortLabel('department_name')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('position_name')}>Cargo{sortLabel('position_name')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('first_entry')}>Ingreso{sortLabel('first_entry')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('last_exit')}>Salida{sortLabel('last_exit')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('absence_reason')}>Novedad{sortLabel('absence_reason')}</button></th>
+                <th className={styles.summaryTh}><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('record_times')}>Registros{sortLabel('record_times')}</button></th>
               </tr>
             </thead>
             <tbody className={styles.summaryTbody}>

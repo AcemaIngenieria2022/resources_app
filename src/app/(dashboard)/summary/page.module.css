@@ -108,6 +108,26 @@
   white-space: nowrap;
 }
 
+.sortHeaderButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sortHeaderButton:hover {
+  color: #1e293b;
+}
+
 .summaryTbody tr:hover td {
   background: #f1f5f9;
 }
