@@ -14,6 +14,13 @@ function writeDeliveryLog(entry) {
   fs.appendFileSync(logPath, `${JSON.stringify({ timestamp: new Date().toISOString(), ...entry })}\n`, 'utf8');
 }
 
+function getAttachmentNames(excelPath, date) {
+  return [
+    `summary-${date}.pdf`,
+    ...(excelPath ? [`summary-${date}.xlsx`] : []),
+  ];
+}
+
 /**
  * Crea un transportador de email configurado
  */
@@ -36,7 +43,7 @@ function createTransporter() {
 /**
  * Envía email con los archivos de reporte
  * @param {string} pdfPath - Ruta del archivo PDF
- * @param {string} excelPath - Ruta del archivo Excel
+ * @param {string|null} excelPath - Ruta opcional del archivo Excel
  * @param {string} date - Fecha del reporte (YYYY-MM-DD)
  */
 async function sendReport(pdfPath, excelPath, date) {
@@ -57,8 +64,7 @@ async function sendReport(pdfPath, excelPath, date) {
           <div style="background-color: #f0f7ff; border-left: 4px solid #36BBA7; padding: 15px; margin: 20px 0; border-radius: 4px;">
             <strong>📎 Archivos adjuntos:</strong>
             <ul style="margin-top: 10px; margin-bottom: 0;">
-              <li>summary-${date}.pdf</li>
-              <li>summary-${date}.xlsx</li>
+              ${getAttachmentNames(excelPath, date).map((name) => `<li>${name}</li>`).join('')}
             </ul>
           </div>
           
@@ -77,14 +83,8 @@ async function sendReport(pdfPath, excelPath, date) {
       </div>
     `,
     attachments: [
-      {
-        filename: `summary-${date}.pdf`,
-        path: pdfPath,
-      },
-      {
-        filename: `summary-${date}.xlsx`,
-        path: excelPath,
-      },
+      { filename: `summary-${date}.pdf`, path: pdfPath },
+      ...(excelPath ? [{ filename: `summary-${date}.xlsx`, path: excelPath }] : []),
     ],
   };
 
@@ -95,7 +95,7 @@ async function sendReport(pdfPath, excelPath, date) {
       reportDate: date,
       to: config.mail.to_email,
       cc: config.mail.cc_email,
-      attachments: [pdfPath, excelPath],
+      attachments: [pdfPath, ...(excelPath ? [excelPath] : [])],
       messageId: info.messageId,
     });
     console.log('✅ Email enviado exitosamente');
@@ -109,7 +109,7 @@ async function sendReport(pdfPath, excelPath, date) {
       reportDate: date,
       to: config.mail.to_email,
       cc: config.mail.cc_email,
-      attachments: [pdfPath, excelPath],
+      attachments: [pdfPath, ...(excelPath ? [excelPath] : [])],
       error: error.message,
     });
     console.error('❌ Error al enviar email:', error.message);

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import { query } from '@/lib/db/mysql';
+import { sendLeaveRequestNotification } from '@/services/email/email.service';
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png']);
@@ -94,7 +95,7 @@ export async function POST(request) {
 
     const employees = await query(`
                     SELECT e.id, e.personName, e.corporate_email, d.name AS department_name, p.name AS position_name, assigned_leader.id AS leader_id,
-                  leader_employee.personName AS leader_name
+                  leader_employee.personName AS leader_name, leader_employee.corporate_email AS leader_email
                   FROM employee_documents ed
                   INNER JOIN employees e ON e.id = ed.employee_id
               LEFT JOIN departments d ON d.id = e.department_id
@@ -147,6 +148,15 @@ export async function POST(request) {
     const stateIdSql = '(SELECT id FROM state WHERE code = \'created\' LIMIT 1)';
     const insertSql = `INSERT INTO leave_requests (${insertColumns.join(', ')}, state_id) VALUES (${insertColumns.map(() => '?').join(', ')}, ${stateIdSql})`;
     const result = await query(insertSql, insertValues);
+    await sendLeaveRequestNotification({
+      id: result.insertId,
+      form_full_name: employee.personName,
+      form_email: employeeEmail,
+      leader_email: employee.leader_email,
+      leave_class: leaveClass,
+      state_code: 'created',
+      created_at: new Date().toISOString(),
+    }, 'created');
 
     return Response.json({ data: { id: result.insertId }, message: 'Novedad registrada correctamente.' }, { status: 201 });
   } catch (error) {

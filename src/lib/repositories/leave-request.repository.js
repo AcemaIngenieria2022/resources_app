@@ -1,4 +1,5 @@
 import { query } from '@/lib/db/mysql';
+import { sendLeaveRequestNotification } from '@/services/email/email.service';
 
 // Guarda si la columna de observación de rechazo existe en la tabla de solicitudes.
 let rejectionObservationColumn;
@@ -154,6 +155,9 @@ async function autoRejectExpiredLeaveRequests() {
        WHERE id = ?`,
       [Number(row.id)]
     );
+
+    const expiredRequest = await findLeaveRequestById(row.id);
+    await sendLeaveRequestNotification(expiredRequest, 'expired');
   }
 
   return rows.length;
@@ -217,6 +221,8 @@ export async function findAllLeaveRequests(limit = 100, leaderEmployeeId = null)
         lr.sharepoint_item_id,
         lr.leader_id,
         leader_employee.personName AS leader_name,
+        leader_employee.corporate_email AS leader_email,
+        leader_employee.corporate_email AS leader_email,
         lr.state_id,
         request_state.code AS state_code,
         request_state.name AS state_name,
@@ -277,6 +283,7 @@ export async function findLeaveRequestById(id) {
         lr.sharepoint_item_id,
         lr.leader_id,
         leader_employee.personName AS leader_name,
+        leader_employee.corporate_email AS leader_email,
         lr.state_id,
         request_state.code AS state_code,
         request_state.name AS state_name,
@@ -337,6 +344,7 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
         lr.sharepoint_item_id,
         lr.leader_id,
         leader_employee.personName AS leader_name,
+        leader_employee.corporate_email AS leader_email,
         lr.state_id,
         request_state.code AS state_code,
         request_state.name AS state_name,

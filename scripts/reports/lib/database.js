@@ -18,26 +18,36 @@ async function getConnection() {
 }
 
 /**
+ * Crea una conexión a la base remota que contiene las marcaciones attlog
+ */
+async function getAttlogConnection() {
+  try {
+    return await mysql.createConnection(config.attlogDatabase);
+  } catch (error) {
+    console.error('❌ Error al conectar a la base de attlog:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Obtiene los datos del resumen de asistencia para una fecha
  * @param {string} date - Fecha en formato YYYY-MM-DD
  * @returns {Promise<Array>} Array de objetos con datos del resumen
  */
 async function getSummaryData(date) {
   let connection;
+  let attlogConnection;
   try {
     connection = await getConnection();
+    attlogConnection = await getAttlogConnection();
 
-    const sql = `
+    const employeeSql = `
       SELECT
         e.id,
         e.employeedID,
         e.personName,
         d.name AS department_name,
         p.name AS position_name,
-        external_first.first_entry,
-        internal_last.last_exit,
-        IFNULL(record_summary.record_count, 0) AS record_count,
-        record_summary.record_times,
         CONCAT_WS(', ',
           (SELECT GROUP_CONCAT(CONCAT(r.reason,
             CASE WHEN r.start_time IS NOT NULL AND r.end_time IS NOT NULL
@@ -56,38 +66,46 @@ async function getSummaryData(date) {
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN positions p ON e.position_id = p.id
-      LEFT JOIN (
-        SELECT employeedID, MIN(authDateTime) AS first_entry
-        FROM attlog
-        WHERE authDate = ? AND UPPER(diviceName) = 'EXTERNO'
-        GROUP BY employeedID
-      ) external_first ON external_first.employeedID = e.employeedID
-      LEFT JOIN (
-        SELECT employeedID, MAX(authDateTime) AS last_exit
-        FROM attlog
-        WHERE authDate = ? AND UPPER(diviceName) = 'INTERNO'
-        GROUP BY employeedID
-      ) internal_last ON internal_last.employeedID = e.employeedID
-      LEFT JOIN (
-        SELECT employeedID,
-          COUNT(*) AS record_count,
-          GROUP_CONCAT(CONCAT(TIME_FORMAT(authDateTime, '%H:%i'), '|', UPPER(diviceName)) ORDER BY authDateTime SEPARATOR '||') AS record_times
-        FROM attlog
-        WHERE authDate = ?
-        GROUP BY employeedID
-      ) record_summary ON record_summary.employeedID = e.employeedID
       WHERE e.active = 1
       ORDER BY e.personName ASC
     `;
 
-    const [rows] = await connection.execute(sql, [date, date, date, date, date, date, date]);
-    return rows || [];
+    const attlogSql = `
+      SELECT
+        employeedID,
+        MIN(CASE WHEN UPPER(diviceName) = 'EXTERNO' THEN authDateTime END) AS first_entry,
+        MAX(CASE WHEN UPPER(diviceName) = 'INTERNO' THEN authDateTime END) AS last_exit,
+        COUNT(*) AS record_count,
+        GROUP_CONCAT(CONCAT(TIME_FORMAT(authDateTime, '%H:%i'), '|', UPPER(diviceName)) ORDER BY authDateTime SEPARATOR '||') AS record_times
+      FROM attlog
+      WHERE authDate = ?
+      GROUP BY employeedID
+    `;
+
+    const [[employees], [attendanceRows]] = await Promise.all([
+      connection.execute(employeeSql, [date, date, date, date]),
+      attlogConnection.execute(attlogSql, [date]),
+    ]);
+    const attendanceByID = new Map(attendanceRows.map((row) => [String(row.employeedID), row]));
+
+    return (employees || []).map((employee) => ({
+      ...employee,
+      ...(attendanceByID.get(String(employee.employeedID)) || {
+        first_entry: null,
+        last_exit: null,
+        record_count: 0,
+        record_times: null,
+      }),
+    }));
   } catch (error) {
     console.error('❌ Error al obtener datos del resumen:', error.message);
     throw error;
   } finally {
     if (connection) {
       await connection.end();
+    }
+    if (attlogConnection) {
+      await attlogConnection.end();
     }
   }
 }
@@ -97,10 +115,13 @@ async function getSummaryData(date) {
  */
 async function testConnection() {
   let connection;
+  let attlogConnection;
   try {
     connection = await getConnection();
+    attlogConnection = await getAttlogConnection();
     const [rows] = await connection.execute('SELECT 1 as connected');
-    console.log('✅ Conexión a base de datos exitosa');
+    await attlogConnection.execute('SELECT 1 as connected');
+    console.log('✅ Conexiones a bases de datos principal y attlog exitosas');
     return true;
   } catch (error) {
     console.error('❌ Error de conexión:', error.message);
@@ -109,11 +130,15 @@ async function testConnection() {
     if (connection) {
       await connection.end();
     }
+    if (attlogConnection) {
+      await attlogConnection.end();
+    }
   }
 }
 
 module.exports = {
   getConnection,
+  getAttlogConnection,
   getSummaryData,
   testConnection,
 };

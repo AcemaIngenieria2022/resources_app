@@ -1,6 +1,7 @@
 import * as leaveRequestRepository from '@/lib/repositories/leave-request.repository';
 import { AppError } from '@/lib/errors/AppError';
 import { reviewLeaveRequest } from '@/lib/repositories/leave-request.repository';
+import { sendLeaveRequestNotification } from '@/services/email/email.service';
 
 // Expone la lista de solicitudes al resto de la aplicación con manejo de errores centralizado.
 export async function getAllLeaveRequests(limit = 100, leaderEmployeeId = null) {
@@ -61,6 +62,8 @@ export async function updateStatus(id, status) {
     }
 
     await leaveRequestRepository.updateLeaveRequestStatus(id, status);
+    const updatedRequest = await leaveRequestRepository.findLeaveRequestById(id);
+    await sendLeaveRequestNotification(updatedRequest || { id, status }, 'updated');
     return { id, status };
   } catch (error) {
     if (error instanceof AppError) throw error;
@@ -72,6 +75,8 @@ export async function updateStatus(id, status) {
 export async function reviewRequest({ id, action, role, userId, employeeId, userName, observation }) {
   const result = await reviewLeaveRequest({ id, action, role, userId, employeeId, userName, observation });
   if (result.error) throw new AppError(result.error, result.status);
+  const updatedRequest = await leaveRequestRepository.findLeaveRequestById(id);
+  await sendLeaveRequestNotification(updatedRequest, `${role}_${result.action}`);
   return result;
 }
 

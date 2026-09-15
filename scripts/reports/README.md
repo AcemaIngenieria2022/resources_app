@@ -21,7 +21,7 @@ scripts/reports/
 ### Generar un reporte
 
 ```bash
-# Reporte de hoy
+# Reporte del día anterior
 node scripts/reports/send.js
 
 # Reporte de fecha específica
@@ -31,7 +31,7 @@ node scripts/reports/send.js 2026-04-01
 ### Programar ejecución automática
 
 ```bash
-# Ejecutar cada día a las 6:00 AM
+# Ejecutar cada día a las 6:00 AM; procesa la jornada del día anterior
 node scripts/reports/scheduler.js
 ```
 
@@ -65,7 +65,7 @@ module.exports = {
 Los reportes se guardan en `/reports/`:
 
 - `summary-YYYY-MM-DD.pdf` - Resumen visual
-- `summary-YYYY-MM-DD.xlsx` - Datos detallados
+- `summary-YYYY-MM-DD.xlsx` - Datos detallados, solo si `REPORTS_SEND_EXCEL=true`
 
 ## 🔧 Tecnología
 

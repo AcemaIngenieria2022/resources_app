@@ -7,7 +7,7 @@
  *   node scripts/reports/send.js [YYYY-MM-DD]
  * 
  * Ejemplos:
- *   node scripts/reports/send.js                 # Usa la fecha de hoy
+ *   node scripts/reports/send.js                 # Usa el día anterior
  *   node scripts/reports/send.js 2026-04-01      # Usa la fecha especificada
  * 
  * Genera:
@@ -50,9 +50,13 @@ function getReportDate() {
     return arg;
   }
   
-  // Usar fecha de hoy en formato YYYY-MM-DD
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  // El reporte automático corresponde a la jornada completa del día anterior.
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const year = yesterday.getFullYear();
+  const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const day = String(yesterday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -91,9 +95,14 @@ async function main() {
     console.log('\n3️⃣  Generando PDF...');
     const pdfPath = await generatePDF(summaryData, reportDate);
 
-    // Paso 4: Generar Excel
-    console.log('\n4️⃣  Generando Excel...');
-    const excelPath = await generateExcel(summaryData, reportDate);
+    // Paso 4: Generar Excel solo si fue habilitado explícitamente.
+    let excelPath = null;
+    if (require('./config').reports.send_excel) {
+      console.log('\n4️⃣  Generando Excel...');
+      excelPath = await generateExcel(summaryData, reportDate);
+    } else {
+      console.log('\n4️⃣  Excel omitido (REPORTS_SEND_EXCEL no está habilitado)');
+    }
 
     // Paso 5: Enviar email
     console.log('\n5️⃣  Enviando email con reportes...');
