@@ -111,6 +111,12 @@ const DetailModal = ({ isOpen, data, onClose }) => {
               <span className={styles.detailLabel}>Tipo de Novedad:</span>
               <span className={styles.detailValue}>{data.leave_class}</span>
             </div>
+            {data.leave_class === 'Vacaciones' && (
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Pago de vacaciones:</span>
+                <span className={styles.detailValue}>{formatVacationPaymentType(data.vacation_payment_type)}</span>
+              </div>
+            )}
             <div className={styles.detailRow}>
               <span className={styles.detailLabel}>Motivo:</span>
               <span className={styles.detailValue}>{data.reason || 'Sin motivo registrado'}</span>
@@ -266,6 +272,18 @@ function formatDate(value) {
 function formatTime(value) {
   if (!value) return 'Sin información';
   return value;
+}
+
+function formatVacationPaymentType(value) {
+  if (!value) return 'No registrado';
+
+  const labels = {
+    time: 'Tiempo completo',
+    money: 'Compensación monetaria',
+    time_money: 'Tiempo y compensación monetaria',
+  };
+
+  return labels[value] || 'No registrado';
 }
 
 // Formatea la leyenda de rechazos para distinguir una cancelación automática por vencimiento de un rechazo manual.
@@ -435,9 +453,15 @@ export default function LeaveRequestsPage() {
 
   // Ejecuta la aprobación o rechazo de una novedad desde la tabla principal.
   const handleReview = async (id, reviewAction) => {
+    const request = leaveRequests.find((item) => item.id === id);
+    const vacationPaymentText = request?.leave_class === 'Vacaciones'
+      ? `Pago de vacaciones: ${formatVacationPaymentType(request.vacation_payment_type)}`
+      : null;
+
     const result = await Swal.fire(reviewAction === 'reject'
       ? {
         title: 'Rechazar novedad',
+        text: vacationPaymentText || 'Confirma el rechazo de esta novedad.',
         input: 'textarea',
         inputLabel: 'Observación',
         inputPlaceholder: 'Explica el motivo del rechazo...',
@@ -450,7 +474,7 @@ export default function LeaveRequestsPage() {
       }
       : {
         title: 'Confirmar aprobación',
-        text: '¿Aprobar esta novedad?',
+        text: vacationPaymentText ? `${vacationPaymentText}\n\n¿Aprobar esta novedad?` : '¿Aprobar esta novedad?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sí, aprobar',

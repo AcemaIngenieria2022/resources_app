@@ -26,9 +26,11 @@ export async function POST(request) {
         employeedID: body.employeedID,
         personName: body.personName,
         department_id: body.department_id,
+        company_id: body.company_id,
         position_id: body.position_id,
         role_id: body.role_id,
         user_id: body.user_id,
+        hire_date: body.hire_date,
         active: body.active !== false,
       });
       return Response.json(okResponse({ id: res.id }, { message: 'Empleado creado', status: 'success' }));
@@ -38,9 +40,11 @@ export async function POST(request) {
       await empService.editEmployee(body.id, {
         personName: body.personName,
         department_id: body.department_id,
+        company_id: body.company_id,
         position_id: body.position_id,
         role_id: body.role_id,
         user_id: body.user_id,
+        hire_date: body.hire_date,
         active: body.active,
       });
       return Response.json(okResponse(null, { message: 'Empleado actualizado', status: 'success' }));

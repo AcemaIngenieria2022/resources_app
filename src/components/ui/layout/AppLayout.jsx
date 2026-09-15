@@ -41,6 +41,7 @@ const navItems = [
     children: [
       { href: '/absence/manage', label: 'Administrar', icon: faPenToSquare },
       { href: '/leave-requests', label: 'Validaciones', icon: faClipboardList },
+      { href: '/vacations', label: 'Vacaciones', icon: faCalendarCheck },
     ],
   },
   {

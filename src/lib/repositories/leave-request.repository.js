@@ -159,12 +159,35 @@ async function autoRejectExpiredLeaveRequests() {
   return rows.length;
 }
 
+// Comprueba si la columna del tipo de pago de vacaciones existe en la base actual.
+let vacationPaymentTypeColumn;
+async function hasVacationPaymentTypeColumn() {
+  if (vacationPaymentTypeColumn === undefined) {
+    const rows = await query(
+      `SELECT COUNT(*) AS total
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE()
+         AND table_name = 'leave_requests'
+         AND column_name = 'vacation_payment_type'`
+    );
+    vacationPaymentTypeColumn = Number(rows?.[0]?.total || 0) > 0;
+  }
+  return vacationPaymentTypeColumn;
+}
+
+async function vacationPaymentTypeSelect() {
+  return (await hasVacationPaymentTypeColumn())
+    ? 'lr.vacation_payment_type'
+    : 'NULL AS vacation_payment_type';
+}
+
 // Obtiene el listado principal de solicitudes, aplicando la expiración automática antes de consultar los datos.
 export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
   await autoRejectExpiredLeaveRequests();
 
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
+  const vacationPaymentType = await vacationPaymentTypeSelect();
   const rows = await query(
     `
       SELECT
@@ -177,6 +200,7 @@ export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
         lr.form_phone,
         lr.direct_supervisor,
             lr.leave_class,
+            ${vacationPaymentType},
             lr.reason,
             lr.permission_type,
             lr.start_date,
@@ -223,6 +247,7 @@ export async function findLeaveRequestById(id) {
 
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
+  const vacationPaymentType = await vacationPaymentTypeSelect();
   const rows = await query(
     `
       SELECT
@@ -235,6 +260,7 @@ export async function findLeaveRequestById(id) {
         lr.form_phone,
         lr.direct_supervisor,
         lr.leave_class,
+        ${vacationPaymentType},
         lr.reason,
         lr.permission_type,
         lr.start_date,
@@ -281,6 +307,7 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
 
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
+  const vacationPaymentType = await vacationPaymentTypeSelect();
   const rows = await query(
     `
       SELECT
@@ -293,6 +320,7 @@ export async function findLeaveRequestsByEmployeeId(employee_id) {
         lr.form_phone,
         lr.direct_supervisor,
         lr.leave_class,
+        ${vacationPaymentType},
         lr.reason,
         lr.permission_type,
         lr.start_date,
@@ -338,6 +366,7 @@ export async function findLeaveRequestsByStatus(status) {
 
   const rejectionObservation = await rejectionObservationSelect();
   const traceability = await traceabilitySelect();
+  const vacationPaymentType = await vacationPaymentTypeSelect();
   const rows = await query(
     `
       SELECT
@@ -350,6 +379,7 @@ export async function findLeaveRequestsByStatus(status) {
         lr.form_phone,
         lr.direct_supervisor,
         lr.leave_class,
+        ${vacationPaymentType},
         lr.reason,
         lr.permission_type,
         lr.start_date,

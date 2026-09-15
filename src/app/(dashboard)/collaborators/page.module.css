@@ -82,6 +82,11 @@
   -webkit-backdrop-filter: blur(3.6px);
 }
 
+.modalPanel {
+  width: min(100% - 32px, 500px);
+  padding: 20px 24px;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -211,6 +216,54 @@
 .sortHeaderButton span {
   color: #64748b;
   font-size: 12px;
+}
+
+.companyAccordionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.companyAccordionButton:hover {
+  color: #168f80;
+}
+
+.companyAccordionChevron {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.companyDetailsRow td {
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.companyDetailsTable {
+  width: 100%;
+  font-size: 12px;
+}
+
+.companyDetailsTable th {
+  padding: 0 16px 0 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  text-align: left;
+}
+
+.companyDetailsTable td {
+  padding: 0 24px 0 0;
+  border: 0;
+  background: transparent;
 }
 
 .table tbody tr:nth-child(even) td {
@@ -974,6 +1027,21 @@
 }
 
 @media (max-width: 640px) {
+  .pageContainer {
+    padding: 8px 0;
+  }
+
+  .header {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .headerIcon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
   .leadershipView {
     padding: 12px;
   }
@@ -1006,6 +1074,45 @@
     flex: 1;
     min-width: 0;
   }
+
+  .modalOverlay {
+    align-items: flex-start;
+    padding: 8px 0;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .modalPanel {
+    max-height: calc(100vh - 16px);
+    box-sizing: border-box;
+    padding: 14px 16px !important;
+    overflow-y: auto;
+  }
+
+  .formField {
+    margin-bottom: 7px;
+  }
+
+  .formLabel {
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+
+  .formInput,
+  .formSelect {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .formActions {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .formSubmit,
+  .formCancel {
+    padding: 7px 14px;
+  }
 }
 
 .activeCheckbox {
@@ -1029,15 +1136,41 @@
   }
 
   .title {
-    font-size: 21px;
+    font-size: 18px;
+  }
+
+  .description {
+    margin-top: 2px;
+    line-height: 1.25;
   }
 
   .tabs {
+    gap: 4px;
+    margin-bottom: 8px;
     overflow-x: auto;
   }
 
   .tab {
     flex-shrink: 0;
-    padding: 10px 14px;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
+  .addButton {
+    padding: 7px 10px;
+  }
+
+  .employeeSearch {
+    margin: 6px 0;
+    padding: 6px 10px;
+  }
+
+  .table th,
+  .table td {
+    padding: 5px 8px;
+  }
+
+  .table th {
+    padding: 6px 8px;
   }
 }

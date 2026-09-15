@@ -1,0 +1,2 @@
+ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS hire_date DATE NULL AFTER active;

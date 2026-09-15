@@ -9,18 +9,25 @@ export async function findAllEmployees(limit = 50) {
         e.employeedID,
         e.personName,
         e.department_id,
+        e.company_id,
         e.position_id,
         e.role_id,
         e.user_id,
+        e.hire_date,
         le.leader_id,
         e.active,
         e.created_at,
         d.name AS department_name,
+        c.name AS company_name,
+        c.city AS company_city,
+        c.address AS company_address,
+        c.color AS company_color,
         p.name AS position_name,
         r.description AS role_name,
         assigned_leader_employee.personName AS leader_name
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN company c ON e.company_id = c.id
       LEFT JOIN positions p ON e.position_id = p.id
       LEFT JOIN roles r ON e.role_id = r.id
       LEFT JOIN leader_employees le ON le.employee_id = e.id AND le.active = 1
@@ -41,18 +48,25 @@ export async function findEmployeeById(id) {
         e.employeedID,
         e.personName,
         e.department_id,
+        e.company_id,
         e.position_id,
         e.role_id,
         e.user_id,
+        e.hire_date,
         le.leader_id,
         e.active,
         e.created_at,
         d.name AS department_name,
+        c.name AS company_name,
+        c.city AS company_city,
+        c.address AS company_address,
+        c.color AS company_color,
         p.name AS position_name,
         r.description AS role_name,
         assigned_leader_employee.personName AS leader_name
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN company c ON e.company_id = c.id
       LEFT JOIN positions p ON e.position_id = p.id
       LEFT JOIN roles r ON e.role_id = r.id
       LEFT JOIN leader_employees le ON le.employee_id = e.id AND le.active = 1
@@ -72,19 +86,19 @@ export async function countEmployees() {
   return Number(rows?.[0]?.total ?? 0);
 }
 
-export async function createEmployee({ employeedID, personName, department_id, position_id, role_id, user_id, active }) {
+export async function createEmployee({ employeedID, personName, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
   const result = await query(
-    `INSERT INTO employees (employeedID, personName, department_id, position_id, role_id, user_id, active, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [employeedID, personName, department_id || null, position_id || null, role_id || null, user_id || null, active ? 1 : 0]
+    `INSERT INTO employees (employeedID, personName, department_id, company_id, position_id, role_id, user_id, hire_date, active, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [employeedID, personName, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0]
   );
   return { insertId: result.insertId };
 }
 
-export async function updateEmployee(id, { personName, department_id, position_id, role_id, user_id, active }) {
+export async function updateEmployee(id, { personName, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
   const result = await query(
-    `UPDATE employees SET personName = ?, department_id = ?, position_id = ?, role_id = ?, user_id = ?, active = ? WHERE id = ?`,
-    [personName, department_id || null, position_id || null, role_id || null, user_id || null, active ? 1 : 0, Number(id)]
+    `UPDATE employees SET personName = ?, department_id = ?, company_id = ?, position_id = ?, role_id = ?, user_id = ?, hire_date = ?, active = ? WHERE id = ?`,
+    [personName, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0, Number(id)]
   );
   return result;
 }

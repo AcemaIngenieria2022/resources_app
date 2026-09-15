@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -29,9 +30,23 @@ const emptyForm = {
   notes: "",
 };
 
+const leaveClassOptions = [
+  'Licencia de maternidad/paternidad',
+  'Calamidad doméstica',
+  'Licencia por luto',
+  'Cita médica',
+  'Ejercicio de derecho al voto',
+  'Día(s) compensatorio(s)',
+  'Vacaciones',
+  'Cargo oficial transitorio de forzosa aceptación',
+  'Otro',
+];
+
 // Módulo de administración de ausencias y novedades.
 // Permite ver, registrar, editar, cancelar y eliminar registros de colaboradores.
 export default function ManageAbsencesPage() {
+  const searchParams = useSearchParams();
+  const requestedEmployeeId = searchParams.get("employee_id");
   const [employees, setEmployees] = useState([]);
   const [records, setRecords] = useState([]);
   const [cancelledRecords, setCancelledRecords] = useState([]);
@@ -153,6 +168,23 @@ export default function ManageAbsencesPage() {
     }, 0);
     return () => clearTimeout(timer);
   }, [loadEmployees, loadRecords]);
+
+  useEffect(() => {
+    if (!requestedEmployeeId || employees.length === 0) return;
+
+    const selectedEmployee = employees.find(
+      (employee) => String(employee.id) === String(requestedEmployeeId) && employee.active
+    );
+
+    if (!selectedEmployee) return;
+
+    const timer = setTimeout(() => {
+      setForm((current) => ({ ...current, employee_id: String(selectedEmployee.id) }));
+      setRegistering(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [employees, requestedEmployeeId]);
 
   function updateForm(event) {
     const { name, value } = event.target;
@@ -805,13 +837,17 @@ export default function ManageAbsencesPage() {
             </div>
             <label>
               Motivo
-              <input
+              <select
                 name="reason"
                 value={form.reason}
                 onChange={updateForm}
                 required
-                maxLength={100}
-              />
+              >
+                <option value="">Selecciona una opción</option>
+                {leaveClassOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </label>
             <label>
               Notas

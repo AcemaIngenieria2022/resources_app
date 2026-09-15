@@ -10,6 +10,18 @@ const attempts = new Map();
 const WINDOW_MS = 60_000;
 const MAX_ATTEMPTS = 5;
 
+async function hasVacationPaymentTypeColumn() {
+  const rows = await query(
+    `SELECT COUNT(*) AS total
+     FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name = 'leave_requests'
+       AND column_name = 'vacation_payment_type'`
+  );
+
+  return Number(rows?.[0]?.total || 0) > 0;
+}
+
 function rateLimited(request) {
   const key = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const now = Date.now();
@@ -32,6 +44,7 @@ export async function POST(request) {
     const form = await request.formData();
     const documentNumber = String(form.get('identification_id') || '').trim();
     const leaveClass = String(form.get('leave_class') || '').trim();
+    const vacationPaymentType = String(form.get('vacation_payment_type') || '').trim();
     const permissionType = String(form.get('permission_type') || '').trim();
     const startDate = String(form.get('start_date') || '').trim() || null;
     const endDate = String(form.get('end_date') || '').trim() || null;
@@ -49,8 +62,13 @@ export async function POST(request) {
     const email = String(form.get('email') || '').trim();
     const file = form.get('attachment');
 
+    const isVacationLeave = leaveClass.toLowerCase() === 'vacaciones';
+
     if (!/^\d{4,20}$/.test(documentNumber) || !/^\d{7,15}$/.test(phone) || !leaveClass || !reason || !['days', 'hours'].includes(permissionType) || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return Response.json({ error: 'Completa los campos obligatorios correctamente.' }, { status: 400 });
+    }
+    if (isVacationLeave && !['time', 'money', 'time_money'].includes(vacationPaymentType)) {
+      return Response.json({ error: 'Selecciona cómo deseas disfrutar las vacaciones: en tiempo, en dinero o en tiempo y dinero.' }, { status: 400 });
     }
     if (permissionType === 'days' && (!startDate || !endDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || endDate < startDate || !Number.isFinite(calculatedTotalDays) || calculatedTotalDays <= 0)) {
       return Response.json({ error: 'Indica correctamente el rango de fechas.' }, { status: 400 });
@@ -91,6 +109,7 @@ export async function POST(request) {
     if (!employee) return Response.json({ error: 'El colaborador no pudo ser validado.' }, { status: 404 });
     if (!employee.leader_id) return Response.json({ error: 'El colaborador no tiene un jefe directo asignado.' }, { status: 409 });
 
+    const hasVacationColumn = await hasVacationPaymentTypeColumn();
     let storedRelativePath = null;
     if (file instanceof File && file.size > 0) {
       const employeeFolder = path.join(process.cwd(), 'storage', 'uploads', 'permisos', String(employee.id));
@@ -101,14 +120,32 @@ export async function POST(request) {
       await fs.writeFile(savedPath, Buffer.from(await file.arrayBuffer()));
     }
 
-    const result = await query(`
-      INSERT INTO leave_requests
-        (employee_id, form_full_name, form_email, identification_id, form_position,
-         form_phone, direct_supervisor, leave_class, permission_type, start_date,
-        end_date, permission_date, total_days, total_hours, start_time, end_time, reason,
-         attachment_url, leader_id, state_id, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM state WHERE code = 'created' LIMIT 1), 'Pending')
-    `, [employee.id, employee.personName, email, documentNumber, employee.position_name || 'Sin cargo', phone, employee.leader_name || null, leaveClass, permissionType, startDate, endDate, permissionDate, calculatedTotalDays, calculatedTotalHours, startTime, endTime, reason, storedRelativePath, employee.leader_id || null]);
+    const insertColumns = [
+      'employee_id', 'form_full_name', 'form_email', 'identification_id', 'form_position',
+      'form_phone', 'direct_supervisor', 'leave_class'
+    ];
+    const insertValues = [
+      employee.id, employee.personName, email, documentNumber, employee.position_name || 'Sin cargo',
+      phone, employee.leader_name || null, leaveClass
+    ];
+
+    if (hasVacationColumn) {
+      insertColumns.push('vacation_payment_type');
+      insertValues.push(isVacationLeave ? vacationPaymentType : null);
+    }
+
+    insertColumns.push(
+      'permission_type', 'start_date', 'end_date', 'permission_date', 'total_days', 'total_hours',
+      'start_time', 'end_time', 'reason', 'attachment_url', 'leader_id', 'status'
+    );
+    insertValues.push(
+      permissionType, startDate, endDate, permissionDate, calculatedTotalDays, calculatedTotalHours,
+      startTime, endTime, reason, storedRelativePath, employee.leader_id || null, 'Pending'
+    );
+
+    const stateIdSql = '(SELECT id FROM state WHERE code = \'created\' LIMIT 1)';
+    const insertSql = `INSERT INTO leave_requests (${insertColumns.join(', ')}, state_id) VALUES (${insertColumns.map(() => '?').join(', ')}, ${stateIdSql})`;
+    const result = await query(insertSql, insertValues);
 
     return Response.json({ data: { id: result.insertId }, message: 'Novedad registrada correctamente.' }, { status: 201 });
   } catch (error) {

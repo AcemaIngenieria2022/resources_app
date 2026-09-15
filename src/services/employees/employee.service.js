@@ -13,6 +13,7 @@ import {
 } from '@/lib/repositories/employee.repository';
 import * as deptRepo from '@/lib/repositories/department.repository';
 import * as posRepo from '@/lib/repositories/position.repository';
+import * as companyRepo from '@/lib/repositories/company.repository';
 
 const COLLABORATOR_ROLE_NAME = 'collaborator';
 
@@ -64,6 +65,11 @@ export async function addEmployee(data) {
     if (!pos) throw new AppError('Cargo no existe', 400);
   }
 
+  if (data.company_id) {
+    const company = await companyRepo.findCompanyById(data.company_id);
+    if (!company) throw new AppError('Empresa no existe', 400);
+  }
+
   const roleId = data.role_id || await getCollaboratorRoleId();
   if (roleId) {
     const role = await findRoleById(roleId);
@@ -74,9 +80,11 @@ export async function addEmployee(data) {
     employeedID: data.employeedID,
     personName: data.personName,
     department_id: data.department_id || null,
+    company_id: data.company_id || null,
     position_id: data.position_id || null,
     role_id: roleId,
     user_id: data.user_id || null,
+    hire_date: data.hire_date || null,
     active: data.active !== false,
   });
 
@@ -97,6 +105,11 @@ export async function editEmployee(id, data) {
     if (!pos) throw new AppError('Cargo no existe', 400);
   }
 
+  if (data.company_id) {
+    const company = await companyRepo.findCompanyById(data.company_id);
+    if (!company) throw new AppError('Empresa no existe', 400);
+  }
+
   if (data.role_id) {
     const role = await findRoleById(data.role_id);
     if (!role) throw new AppError('Rol no existe', 400);
@@ -105,9 +118,11 @@ export async function editEmployee(id, data) {
   await updateEmployee(id, {
     personName: data.personName || emp.personName,
     department_id: data.department_id !== undefined ? data.department_id : emp.department_id,
+    company_id: data.company_id !== undefined ? data.company_id : emp.company_id,
     position_id: data.position_id !== undefined ? data.position_id : emp.position_id,
     role_id: data.role_id !== undefined ? data.role_id : emp.role_id,
     user_id: data.user_id !== undefined ? data.user_id : emp.user_id,
+    hire_date: data.hire_date !== undefined ? data.hire_date : emp.hire_date,
     active: data.active !== undefined ? data.active : emp.active,
   });
 

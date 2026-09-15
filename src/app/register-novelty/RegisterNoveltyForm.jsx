@@ -1,14 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Formulario público para registrar una novedad desde la vista externa de colaboradores.
 import styles from './page.module.css';
 
 const initialForm = {
-  permission_type: 'days', leave_class: '', email: '', phone: '', start_date: '', end_date: '',
+  permission_type: 'days', leave_class: '', vacation_payment_type: '', email: '', phone: '', start_date: '', end_date: '',
   permission_date: '', start_time: '', end_time: '', reason: '', attachment: null,
 };
+
+const defaultVacationPaymentTypes = [
+  { code: 'time', name: 'Tiempo completo' },
+  { code: 'money', name: 'Compensación monetaria' },
+  { code: 'time_money', name: 'Tiempo y compensación monetaria' },
+];
 
 export default function RegisterNoveltyForm() {
   const [documentNumber, setDocumentNumber] = useState('');
@@ -16,11 +22,41 @@ export default function RegisterNoveltyForm() {
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [vacationPaymentOptions, setVacationPaymentOptions] = useState(defaultVacationPaymentTypes);
+
+  useEffect(() => {
+    async function loadVacationPaymentOptions() {
+      try {
+        const response = await fetch('/api/vacation-payment-types');
+        if (!response.ok) throw new Error('No se pudo cargar la configuración');
+        const payload = await response.json();
+        if (Array.isArray(payload?.data) && payload.data.length) {
+          setVacationPaymentOptions(payload.data);
+        }
+      } catch (error) {
+        console.warn('Usando opciones por defecto de pago de vacaciones:', error.message);
+        setVacationPaymentOptions(defaultVacationPaymentTypes);
+      }
+    }
+
+    void loadVacationPaymentOptions();
+  }, []);
 
   // Manejador genérico para inputs, selects y textareas
   const handleChange = (e) => {
     const { id, name, value, type, files } = e.target;
     const fieldName = id || name;
+
+    if (fieldName === 'leave_class' && value !== 'Vacaciones') {
+      setForm(prev => ({
+        ...prev,
+        leave_class: value,
+        vacation_payment_type: '',
+        [fieldName]: type === 'file' ? (files?.[0] || null) : value
+      }));
+      return;
+    }
+
     setForm(prev => ({
       ...prev,
       [fieldName]: type === 'file' ? (files?.[0] || null) : value
@@ -64,6 +100,11 @@ export default function RegisterNoveltyForm() {
       setMessage({ type: 'error', text: 'El celular debe contener únicamente números, entre 7 y 15 dígitos.' });
       return;
     }
+    const validVacationPaymentCodes = new Set(vacationPaymentOptions.map((option) => option.code));
+    if (form.leave_class === 'Vacaciones' && !validVacationPaymentCodes.has(form.vacation_payment_type)) {
+      setMessage({ type: 'error', text: 'Selecciona la forma de disfrutar las vacaciones.' });
+      return;
+    }
     if (form.permission_type === 'days') {
       if (!form.start_date) { setMessage({ type: 'error', text: 'Selecciona la fecha Desde.' }); return; }
       if (!form.end_date) { setMessage({ type: 'error', text: 'Selecciona la fecha Hasta.' }); return; }
@@ -81,6 +122,7 @@ export default function RegisterNoveltyForm() {
       if (value !== undefined && value !== null) body.append(key, value);
     });
     body.append('identification_id', documentNumber);
+    if (form.leave_class !== 'Vacaciones') body.append('vacation_payment_type', '');
     body.append('total_days', form.permission_type === 'days' && form.start_date && form.end_date
       ? ((new Date(`${form.end_date}T00:00:00`) - new Date(`${form.start_date}T00:00:00`)) / 86400000 + 1).toString()
       : '');
@@ -205,8 +247,40 @@ export default function RegisterNoveltyForm() {
               <option>Otro</option>
             </select>
 
-            <label htmlFor="reason">Motivo del permiso</label>
-            <textarea id="reason" value={form.reason} onChange={handleChange} maxLength={500} required placeholder="Describe el motivo del permiso" />
+            {form.leave_class === 'Vacaciones' && (
+              <div className={styles.choiceGroup}>
+                {vacationPaymentOptions.map((option) => (
+                  <label key={option.code}>
+                    <input
+                      type="radio"
+                      name="vacation_payment_type"
+                      value={option.code}
+                      checked={form.vacation_payment_type === option.code}
+                      onChange={handleChange}
+                    />
+                    {option.name}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <label htmlFor="reason">
+              {form.leave_class === 'Vacaciones' && form.vacation_payment_type === 'time_money'
+                ? 'Detalle de vacaciones (indica cuántos días en tiempo y cuántos en dinero)'
+                : 'Motivo del permiso'}
+            </label>
+            <textarea
+              id="reason"
+              value={form.reason}
+              onChange={handleChange}
+              maxLength={500}
+              required
+              placeholder={
+                form.leave_class === 'Vacaciones' && form.vacation_payment_type === 'time_money'
+                  ? 'Ejemplo: 5 días en tiempo y 3 días en dinero'
+                  : 'Describe el motivo del permiso'
+              }
+            />
 
             <label htmlFor="attachment">Documento soporte <span>(opcional: PDF, JPG o PNG, máximo 1 GB)</span></label>
             <input id="attachment" type="file" accept="application/pdf,image/jpeg,image/png" onChange={handleChange} />

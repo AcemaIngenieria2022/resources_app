@@ -216,7 +216,7 @@
 }
 
 .table thead {
-  background: #f8fafc;
+  background: transparent;
 }
 
 .table th,
@@ -229,12 +229,27 @@
 
 .table th {
   border-bottom: 2px solid #36BBA7;
-  background: #f8fafc;
+  background: transparent;
   color: #36BBA7;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.4px;
   white-space: nowrap;
+}
+
+.sortHeaderButton {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: #36BBA7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  white-space: nowrap;
+  appearance: none;
 }
 
 .table tbody tr:nth-child(even) td {

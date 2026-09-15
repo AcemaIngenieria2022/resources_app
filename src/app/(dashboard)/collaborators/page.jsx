@@ -113,9 +113,16 @@ const sortRows = (rows, key, direction) => [...rows].sort((first, second) => {
   return direction === 'asc' ? comparison : -comparison;
 });
 
+const formatHireDate = (value) => {
+  if (!value) return 'Sin registrar';
+  const dateValue = value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+  return new Intl.DateTimeFormat('es-CO').format(new Date(`${dateValue}T00:00:00`));
+};
+
 export default function CollaboratorsAdminPage() {
   const [tab, setTab] = useState('departments');
   const [departments, setDepartments] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [positions, setPositions] = useState([]);
   const [roles, setRoles] = useState([]);
   const [leaders, setLeaders] = useState([]);
@@ -126,12 +133,14 @@ export default function CollaboratorsAdminPage() {
   const [searchEmployee, setSearchEmployee] = useState('');
   const [sortConfigs, setSortConfigs] = useState({
     departments: { key: 'name', direction: 'asc' },
+    companies: { key: 'name', direction: 'asc' },
     positions: { key: 'name', direction: 'asc' },
     employees: { key: 'personName', direction: 'asc' },
   });
 
   // Modal states
   const [deptModal, setDeptModal] = useState({ isOpen: false, mode: 'add', data: {} });
+  const [companyModal, setCompanyModal] = useState({ isOpen: false, mode: 'add', data: {} });
   const [posModal, setPosModal] = useState({ isOpen: false, mode: 'add', data: {} });
   const [empModal, setEmpModal] = useState({ isOpen: false, mode: 'add', data: {} });
 
@@ -167,6 +176,17 @@ export default function CollaboratorsAdminPage() {
     } catch (e) {
       console.error(e);
       showAlert('Error al cargar cargos', 'error');
+    }
+  }, [showAlert]);
+
+  const loadCompanies = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/companies');
+      const payload = await res.json();
+      setCompanies(payload?.data || []);
+    } catch (e) {
+      console.error(e);
+      showAlert('Error al cargar empresas', 'error');
     }
   }, [showAlert]);
 
@@ -220,11 +240,11 @@ export default function CollaboratorsAdminPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([loadDepartments(), loadPositions(), loadRoles(), loadLeaders(), loadEmployees(), loadCollaboratorDocuments()]);
+      await Promise.all([loadDepartments(), loadCompanies(), loadPositions(), loadRoles(), loadLeaders(), loadEmployees(), loadCollaboratorDocuments()]);
     } finally {
       setLoading(false);
     }
-  }, [loadDepartments, loadEmployees, loadLeaders, loadRoles, loadPositions, loadCollaboratorDocuments]);
+  }, [loadCompanies, loadDepartments, loadEmployees, loadLeaders, loadRoles, loadPositions, loadCollaboratorDocuments]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -279,6 +299,53 @@ export default function CollaboratorsAdminPage() {
     } catch (e) {
       console.error(e);
       showAlert('Error al eliminar', 'error');
+    }
+  }
+
+  async function handleSaveCompany(formData) {
+    try {
+      const action = companyModal.mode === 'add' ? 'add' : 'update';
+      const res = await fetch('/api/admin/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          ...formData,
+          ...(companyModal.mode === 'edit' && { id: companyModal.data.id }),
+        }),
+      });
+      const payload = await res.json();
+      if (payload?.success) {
+        showAlert(payload?.meta?.message || 'Operación exitosa', 'success');
+        setCompanyModal({ isOpen: false, mode: 'add', data: {} });
+        await loadCompanies();
+      } else {
+        showAlert(payload?.error || 'Error', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('Error al guardar empresa', 'error');
+    }
+  }
+
+  async function handleDeleteCompany(id) {
+    if (!confirm('¿Eliminar empresa?')) return;
+    try {
+      const res = await fetch('/api/admin/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      });
+      const payload = await res.json();
+      if (payload?.success) {
+        showAlert('Empresa eliminada', 'success');
+        await Promise.all([loadCompanies(), loadEmployees()]);
+      } else {
+        showAlert(payload?.error || 'Error', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('Error al eliminar empresa', 'error');
     }
   }
 
@@ -521,6 +588,7 @@ export default function CollaboratorsAdminPage() {
   };
 
   const sortedDepartments = sortRows(departments, sortConfigs.departments.key, sortConfigs.departments.direction);
+  const sortedCompanies = sortRows(companies, sortConfigs.companies.key, sortConfigs.companies.direction);
   const sortedPositions = sortRows(positions, sortConfigs.positions.key, sortConfigs.positions.direction);
   const sortedEmployees = sortRows(filteredEmployees, sortConfigs.employees.key, sortConfigs.employees.direction);
 
@@ -552,6 +620,7 @@ export default function CollaboratorsAdminPage() {
       <div className={styles.tabs}>
         {[
           { id: 'departments', label: 'Departamentos', icon: faBuilding },
+          { id: 'companies', label: 'Empresas', icon: faBuilding },
           { id: 'positions', label: 'Cargos', icon: faBriefcase },
           { id: 'employees', label: 'Empleados', icon: faUsers },
           { id: 'leadership', label: 'Organigrama', icon: faSitemap },
@@ -604,6 +673,69 @@ export default function CollaboratorsAdminPage() {
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
                       <button className={styles.resetButton} onClick={() => handleDeleteDepartment(d.id)}>
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        </div>
+      )}
+
+      {/* Companies Tab */}
+      {tab === 'companies' && (
+        <div>
+          <button
+            className={styles.addButton}
+            onClick={() => setCompanyModal({ isOpen: true, mode: 'add', data: {} })}
+          >
+            <FontAwesomeIcon icon={faPlusCircle} />
+            Agregar Empresa
+          </button>
+
+          <TableScroll style={{ marginTop: '16px' }}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('companies', 'name')}>
+                      Nombre <span>{sortIndicator('companies', 'name')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('companies', 'city')}>
+                      Ciudad <span>{sortIndicator('companies', 'city')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('companies', 'address')}>
+                      Dirección <span>{sortIndicator('companies', 'address')}</span>
+                    </button>
+                  </th>
+                  <th>Color</th>
+                  <th style={{ width: '180px' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedCompanies.map((company) => (
+                  <tr key={company.id}>
+                    <td><strong>{company.name}</strong></td>
+                    <td>{company.city || 'Sin ciudad'}</td>
+                    <td>{company.address || 'Sin dirección'}</td>
+                    <td>
+                      <span
+                        title={company.color || '#36BBA7'}
+                        aria-label={`Color ${company.color || '#36BBA7'}`}
+                        style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: company.color || '#36BBA7' }}
+                      />
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <button className={styles.editButton} onClick={() => setCompanyModal({ isOpen: true, mode: 'edit', data: company })}>
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button className={styles.resetButton} onClick={() => handleDeleteCompany(company.id)}>
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </td>
@@ -708,9 +840,31 @@ export default function CollaboratorsAdminPage() {
                       Cargo <span>{sortIndicator('employees', 'position_name')}</span>
                     </button>
                   </th>
-                  <th>Rol</th>
-                  <th>Líder asignado</th>
-                  <th>Documento</th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'company_name')}>
+                      Empresa <span>{sortIndicator('employees', 'company_name')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'hire_date')}>
+                      Fecha de ingreso <span>{sortIndicator('employees', 'hire_date')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'role_name')}>
+                      Rol <span>{sortIndicator('employees', 'role_name')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'leader_name')}>
+                      Líder asignado <span>{sortIndicator('employees', 'leader_name')}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'document_number')}>
+                      Documento <span>{sortIndicator('employees', 'document_number')}</span>
+                    </button>
+                  </th>
                   <th style={{ width: '180px' }}>Acciones</th>
                 </tr>
               </thead>
@@ -723,6 +877,19 @@ export default function CollaboratorsAdminPage() {
                     <td>{e.employeedID}</td>
                     <td>{e.department_name || 'Sin asignar'}</td>
                     <td>{e.position_name || 'Sin asignar'}</td>
+                    <td>
+                      {e.company_name ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                          <span
+                            aria-label={`Color de ${e.company_name}`}
+                            title={e.company_color || '#36BBA7'}
+                            style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: e.company_color || '#36BBA7', border: '1px solid rgba(15, 23, 42, 0.18)', flex: '0 0 auto' }}
+                          />
+                          {e.company_name}
+                        </span>
+                      ) : 'Sin asignar'}
+                    </td>
+                    <td>{formatHireDate(e.hire_date)}</td>
                     <td>{e.role_name || 'Sin asignar'}</td>
                     <td>{e.leader_name || 'Sin líder'}</td>
                     <td>{e.document_number || 'Sin documento'}</td>
@@ -785,6 +952,20 @@ export default function CollaboratorsAdminPage() {
         />
       </Modal>
 
+      {/* Company Modal */}
+      <Modal
+        isOpen={companyModal.isOpen}
+        title={companyModal.mode === 'add' ? 'Agregar Empresa' : 'Editar Empresa'}
+        onClose={() => setCompanyModal({ isOpen: false, mode: 'add', data: {} })}
+      >
+        <CompanyForm
+          mode={companyModal.mode}
+          data={companyModal.data}
+          onSubmit={handleSaveCompany}
+          onCancel={() => setCompanyModal({ isOpen: false, mode: 'add', data: {} })}
+        />
+      </Modal>
+
       {/* Employee Modal */}
       <Modal
         isOpen={empModal.isOpen}
@@ -796,6 +977,7 @@ export default function CollaboratorsAdminPage() {
           data={empModal.data}
           departments={departments}
           positions={positions}
+          companies={companies}
           roles={roles}
           leaders={leaders}
           onSubmit={handleSaveEmployee}
@@ -1398,14 +1580,92 @@ function PositionForm({ mode, data, onSubmit, onCancel }) {
   );
 }
 
-function EmployeeForm({ mode, data, departments, positions, roles, leaders, onSubmit, onCancel }) {
+function CompanyForm({ mode, data, onSubmit, onCancel }) {
+  const [formData, setFormData] = useState({
+    name: data.name || '',
+    city: data.city || '',
+    address: data.address || '',
+    color: data.color || '#36BBA7',
+  });
+  const [errors, setErrors] = useState({});
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const nextErrors = {};
+    if (!formData.name.trim()) nextErrors.name = 'El nombre es requerido';
+    if (!/^#[0-9A-Fa-f]{6}$/.test(formData.color)) nextErrors.color = 'Usa un color hexadecimal como #36BBA7';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length === 0) onSubmit(formData);
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormField label="Nombre" required>
+        <Input
+          value={formData.name}
+          onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+          placeholder="Nombre de la empresa"
+          style={errors.name ? { borderColor: '#b91c1c' } : {}}
+        />
+        {errors.name && <span style={{ color: '#b91c1c', fontSize: '12px' }}>{errors.name}</span>}
+      </FormField>
+      <FormField label="Ciudad">
+        <Input
+          value={formData.city}
+          onChange={(event) => setFormData({ ...formData, city: event.target.value })}
+          placeholder="Ciudad"
+        />
+      </FormField>
+      <FormField label="Color identificador">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Input
+            value={formData.color}
+            onChange={(event) => setFormData({ ...formData, color: event.target.value })}
+            placeholder="#36BBA7"
+            maxLength={7}
+            pattern="^#[0-9A-Fa-f]{6}$"
+            aria-label="Color hexadecimal de la empresa"
+            style={errors.color ? { borderColor: '#b91c1c' } : {}}
+          />
+          <Input
+            type="color"
+            value={/^#[0-9A-Fa-f]{6}$/.test(formData.color) ? formData.color : '#36BBA7'}
+            onChange={(event) => setFormData({ ...formData, color: event.target.value.toUpperCase() })}
+            style={{ width: '64px', height: '36px', padding: '3px', cursor: 'pointer' }}
+            aria-label="Seleccionar color identificador de la empresa"
+          />
+        </div>
+        {errors.color && <span style={{ color: '#b91c1c', fontSize: '12px' }}>{errors.color}</span>}
+      </FormField>
+      <FormField label="Dirección">
+        <Input
+          value={formData.address}
+          onChange={(event) => setFormData({ ...formData, address: event.target.value })}
+          placeholder="Dirección"
+        />
+      </FormField>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+        <button type="submit" style={{ padding: '8px 18px', background: '#36BBA7', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+          {mode === 'add' ? 'Crear' : 'Guardar'}
+        </button>
+        <button type="button" onClick={onCancel} style={{ padding: '8px 18px', background: 'transparent', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function EmployeeForm({ mode, data, departments, positions, companies, roles, leaders, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     employeedID: data.employeedID || '',
     personName: data.personName || '',
     department_id: data.department_id || '',
+    company_id: data.company_id || '',
     position_id: data.position_id || '',
     role_id: data.role_id || '',
     leader_id: data.leader_id || '',
+    hire_date: data.hire_date ? String(data.hire_date).slice(0, 10) : '',
     active: data.active !== false,
     document_number: data.document_number || '',
   });
@@ -1425,6 +1685,7 @@ function EmployeeForm({ mode, data, departments, positions, roles, leaders, onSu
       onSubmit({
         ...formData,
         department_id: formData.department_id ? parseInt(formData.department_id) : null,
+        company_id: formData.company_id ? parseInt(formData.company_id) : null,
         position_id: formData.position_id ? parseInt(formData.position_id) : null,
         role_id: formData.role_id ? parseInt(formData.role_id) : null,
         leader_id: formData.leader_id ? parseInt(formData.leader_id) : null,
@@ -1454,6 +1715,14 @@ function EmployeeForm({ mode, data, departments, positions, roles, leaders, onSu
         {errors.personName && <span style={{ color: '#b91c1c', fontSize: '12px' }}>{errors.personName}</span>}
       </FormField>
 
+      <FormField label="Fecha de ingreso">
+        <Input
+          type="date"
+          value={formData.hire_date}
+          onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+        />
+      </FormField>
+
       <FormField label="Departamento">
         <Select
           value={formData.department_id}
@@ -1463,6 +1732,20 @@ function EmployeeForm({ mode, data, departments, positions, roles, leaders, onSu
           {departments.map((d) => (
             <option key={d.id} value={d.id}>
               {d.name}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+
+      <FormField label="Empresa">
+        <Select
+          value={formData.company_id}
+          onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+        >
+          <option value="">-- Sin asignar --</option>
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name}
             </option>
           ))}
         </Select>
