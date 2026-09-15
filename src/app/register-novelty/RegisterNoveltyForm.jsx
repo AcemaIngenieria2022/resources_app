@@ -192,8 +192,16 @@ export default function RegisterNoveltyForm() {
               <span>Jefe inmediato: {employee.leader_name || 'Sin jefe asignado'}</span>
             </div>
 
-            <label htmlFor="email">Correo electrónico</label>
-            <input id="email" type="email" value={form.email} onChange={handleChange} required placeholder="tu-correo@empresa.com" />
+            <label htmlFor="email">Correo corporativo</label>
+            <input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              readOnly={Boolean(employee.corporate_email)}
+              required
+              placeholder="tu-correo@empresa.com"
+            />
 
             <label htmlFor="phone">Celular</label>
             <input 

@@ -25,6 +25,7 @@ export async function POST(request) {
       const res = await empService.addEmployee({
         employeedID: body.employeedID,
         personName: body.personName,
+        corporate_email: body.corporate_email,
         department_id: body.department_id,
         company_id: body.company_id,
         position_id: body.position_id,
@@ -39,6 +40,7 @@ export async function POST(request) {
     if (action === 'update') {
       await empService.editEmployee(body.id, {
         personName: body.personName,
+        corporate_email: body.corporate_email,
         department_id: body.department_id,
         company_id: body.company_id,
         position_id: body.position_id,

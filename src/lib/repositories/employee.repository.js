@@ -8,6 +8,7 @@ export async function findAllEmployees(limit = 50) {
         e.id,
         e.employeedID,
         e.personName,
+        e.corporate_email,
         e.department_id,
         e.company_id,
         e.position_id,
@@ -47,6 +48,7 @@ export async function findEmployeeById(id) {
         e.id,
         e.employeedID,
         e.personName,
+        e.corporate_email,
         e.department_id,
         e.company_id,
         e.position_id,
@@ -86,19 +88,19 @@ export async function countEmployees() {
   return Number(rows?.[0]?.total ?? 0);
 }
 
-export async function createEmployee({ employeedID, personName, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
+export async function createEmployee({ employeedID, personName, corporate_email, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
   const result = await query(
-    `INSERT INTO employees (employeedID, personName, department_id, company_id, position_id, role_id, user_id, hire_date, active, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [employeedID, personName, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0]
+    `INSERT INTO employees (employeedID, personName, corporate_email, department_id, company_id, position_id, role_id, user_id, hire_date, active, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [employeedID, personName, corporate_email || null, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0]
   );
   return { insertId: result.insertId };
 }
 
-export async function updateEmployee(id, { personName, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
+export async function updateEmployee(id, { personName, corporate_email, department_id, company_id, position_id, role_id, user_id, hire_date, active }) {
   const result = await query(
-    `UPDATE employees SET personName = ?, department_id = ?, company_id = ?, position_id = ?, role_id = ?, user_id = ?, hire_date = ?, active = ? WHERE id = ?`,
-    [personName, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0, Number(id)]
+    `UPDATE employees SET personName = ?, corporate_email = ?, department_id = ?, company_id = ?, position_id = ?, role_id = ?, user_id = ?, hire_date = ?, active = ? WHERE id = ?`,
+    [personName, corporate_email || null, department_id || null, company_id || null, position_id || null, role_id || null, user_id || null, hire_date || null, active ? 1 : 0, Number(id)]
   );
   return result;
 }

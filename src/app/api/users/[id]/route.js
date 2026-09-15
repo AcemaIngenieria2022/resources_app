@@ -12,6 +12,7 @@ export async function PATCH(request, context) {
       firstName: body.firstName,
       lastName: body.lastName,
       role: body.role,
+      microsoftOid: body.microsoftOid,
       status: body.status,
       employeeId: body.employeeId,
     });

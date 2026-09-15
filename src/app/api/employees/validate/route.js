@@ -32,7 +32,7 @@ export async function POST(request) {
     const rows = await query(`
             SELECT e.id, e.personName, d.name AS department_name, p.name AS position_name,
               ed.document_number AS identification_id,
-              u.email,
+              COALESCE(e.corporate_email, u.email) AS email,
              assigned_leader.id AS leader_id,
               leader_employee.personName AS leader_name
       FROM employee_documents ed

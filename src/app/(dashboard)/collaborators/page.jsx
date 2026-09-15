@@ -846,6 +846,11 @@ export default function CollaboratorsAdminPage() {
                     </button>
                   </th>
                   <th>
+                    <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'corporate_email')}>
+                      Correo corporativo <span>{sortIndicator('employees', 'corporate_email')}</span>
+                    </button>
+                  </th>
+                  <th>
                     <button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('employees', 'hire_date')}>
                       Fecha de ingreso <span>{sortIndicator('employees', 'hire_date')}</span>
                     </button>
@@ -889,6 +894,7 @@ export default function CollaboratorsAdminPage() {
                         </span>
                       ) : 'Sin asignar'}
                     </td>
+                    <td>{e.corporate_email || 'Sin asignar'}</td>
                     <td>{formatHireDate(e.hire_date)}</td>
                     <td>{e.role_name || 'Sin asignar'}</td>
                     <td>{e.leader_name || 'Sin líder'}</td>
@@ -1660,6 +1666,7 @@ function EmployeeForm({ mode, data, departments, positions, companies, roles, le
   const [formData, setFormData] = useState({
     employeedID: data.employeedID || '',
     personName: data.personName || '',
+    corporate_email: data.corporate_email || '',
     department_id: data.department_id || '',
     company_id: data.company_id || '',
     position_id: data.position_id || '',
@@ -1713,6 +1720,15 @@ function EmployeeForm({ mode, data, departments, positions, companies, roles, le
           style={errors.personName ? { borderColor: '#b91c1c' } : {}}
         />
         {errors.personName && <span style={{ color: '#b91c1c', fontSize: '12px' }}>{errors.personName}</span>}
+      </FormField>
+
+      <FormField label="Correo corporativo">
+        <Input
+          type="email"
+          value={formData.corporate_email}
+          onChange={(e) => setFormData({ ...formData, corporate_email: e.target.value })}
+          placeholder="nombre@empresa.com"
+        />
       </FormField>
 
       <FormField label="Fecha de ingreso">

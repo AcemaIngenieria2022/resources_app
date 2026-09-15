@@ -93,8 +93,8 @@ export async function POST(request) {
     }
 
     const employees = await query(`
-                  SELECT e.id, e.personName, d.name AS department_name, p.name AS position_name, assigned_leader.id AS leader_id,
-              leader_employee.personName AS leader_name
+                    SELECT e.id, e.personName, e.corporate_email, d.name AS department_name, p.name AS position_name, assigned_leader.id AS leader_id,
+                  leader_employee.personName AS leader_name
                   FROM employee_documents ed
                   INNER JOIN employees e ON e.id = ed.employee_id
               LEFT JOIN departments d ON d.id = e.department_id
@@ -108,6 +108,7 @@ export async function POST(request) {
     const employee = employees[0];
     if (!employee) return Response.json({ error: 'El colaborador no pudo ser validado.' }, { status: 404 });
     if (!employee.leader_id) return Response.json({ error: 'El colaborador no tiene un jefe directo asignado.' }, { status: 409 });
+    const employeeEmail = String(employee.corporate_email || email).trim().toLowerCase();
 
     const hasVacationColumn = await hasVacationPaymentTypeColumn();
     let storedRelativePath = null;
@@ -125,7 +126,7 @@ export async function POST(request) {
       'form_phone', 'direct_supervisor', 'leave_class'
     ];
     const insertValues = [
-      employee.id, employee.personName, email, documentNumber, employee.position_name || 'Sin cargo',
+      employee.id, employee.personName, employeeEmail, documentNumber, employee.position_name || 'Sin cargo',
       phone, employee.leader_name || null, leaveClass
     ];
 

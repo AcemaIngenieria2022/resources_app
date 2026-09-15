@@ -3,9 +3,9 @@ import { AppError } from '@/lib/errors/AppError';
 import { reviewLeaveRequest } from '@/lib/repositories/leave-request.repository';
 
 // Expone la lista de solicitudes al resto de la aplicación con manejo de errores centralizado.
-export async function getAllLeaveRequests(limit = 100, leaderUserId = null) {
+export async function getAllLeaveRequests(limit = 100, leaderEmployeeId = null) {
   try {
-    const leaveRequests = await leaveRequestRepository.findAllLeaveRequests(limit, leaderUserId);
+    const leaveRequests = await leaveRequestRepository.findAllLeaveRequests(limit, leaderEmployeeId);
     return leaveRequests;
   } catch (error) {
     throw new AppError('Error al obtener novedades', 500);
@@ -69,8 +69,8 @@ export async function updateStatus(id, status) {
 }
 
 // Revisa una solicitud con la lógica del repositorio y devuelve el resultado normalizado.
-export async function reviewRequest({ id, action, role, userId, userName, observation }) {
-  const result = await reviewLeaveRequest({ id, action, role, userId, userName, observation });
+export async function reviewRequest({ id, action, role, userId, employeeId, userName, observation }) {
+  const result = await reviewLeaveRequest({ id, action, role, userId, employeeId, userName, observation });
   if (result.error) throw new AppError(result.error, result.status);
   return result;
 }

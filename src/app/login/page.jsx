@@ -20,13 +20,26 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error) {
+      const timer = window.setTimeout(() => setMessage(error), 0);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, []);
+
   // Cargar email guardado al montar el componente
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
-      setForm(prev => ({ ...prev, email: savedEmail }));
-      setRememberMe(true);
+      const timer = window.setTimeout(() => {
+        setForm(prev => ({ ...prev, email: savedEmail }));
+        setRememberMe(true);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, []);
 
   async function handleSubmit(event) {
@@ -162,6 +175,18 @@ export default function LoginPage() {
 
               <button type="submit" className="submitButton" disabled={isLoading}>
                 {isLoading ? 'Iniciando...' : 'Iniciar sesión'}
+              </button>
+
+              <div className="loginDivider"><span>o</span></div>
+              <button
+                type="button"
+                className="microsoftButton"
+                onClick={() => {
+                  window.location.assign('/api/auth/microsoft/login');
+                }}
+              >
+                <span className="microsoftLogo">▦</span>
+                Ingresar con Microsoft 365
               </button>
 
               {message && (

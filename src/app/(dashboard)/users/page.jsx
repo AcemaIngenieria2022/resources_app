@@ -106,6 +106,7 @@ const showUserForm = async ({ mode, user = {}, employees = [] }) => {
   const email = escapeHtml(user.email || '');
   const firstName = escapeHtml(user.first_name || '');
   const lastName = escapeHtml(user.last_name || '');
+  const microsoftOid = escapeHtml(user.microsoft_oid || '');
   const role = user.role || 'user';
   const status = normalizeStatus((user.status ?? user.active) || 'active');
   const employeeOptions = employees
@@ -141,6 +142,10 @@ const showUserForm = async ({ mode, user = {}, employees = [] }) => {
           <option value="">Sin empleado vinculado</option>
           ${employeeOptions}
         </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 6px;border-radius:7px;">
+        <i class="fas fa-key" style="color:#94a3b8;"></i>
+        <input id="swal-user-microsoft-oid" autocomplete="off" class="swal2-input" placeholder="Microsoft OID (opcional)" value="${microsoftOid}" style="flex:1;border:none;background:transparent;padding:4px 0;margin:0;">
       </div>
       ${
         mode === 'create'
@@ -190,6 +195,7 @@ const showUserForm = async ({ mode, user = {}, employees = [] }) => {
       const roleValue = document.getElementById('swal-user-role')?.value;
       const statusValue = document.getElementById('swal-user-status')?.value;
       const employeeValue = document.getElementById('swal-user-employee')?.value || '';
+      const microsoftOidValue = document.getElementById('swal-user-microsoft-oid')?.value.trim() || '';
 
       if (!emailValue || !firstNameValue || !lastNameValue) {
         Swal.showValidationMessage('Completa email, nombre y apellido');
@@ -217,6 +223,7 @@ const showUserForm = async ({ mode, user = {}, employees = [] }) => {
           role: roleValue,
           status: statusValue,
           employeeId: employeeValue || null,
+          microsoftOid: microsoftOidValue || null,
           password: passwordValue,
         };
       }
@@ -228,6 +235,7 @@ const showUserForm = async ({ mode, user = {}, employees = [] }) => {
         role: roleValue,
         status: statusValue,
         employeeId: employeeValue || null,
+        microsoftOid: microsoftOidValue || null,
       };
     },
   });
@@ -342,6 +350,7 @@ export default function UserManagementPage() {
           role: formData.role,
           status: formData.status,
           employeeId: formData.employeeId,
+          microsoftOid: formData.microsoftOid,
         }),
       });
 
@@ -387,6 +396,7 @@ export default function UserManagementPage() {
           role: formData.role,
           status: formData.status,
           employeeId: formData.employeeId,
+          microsoftOid: formData.microsoftOid,
         }),
       });
 
@@ -673,6 +683,7 @@ export default function UserManagementPage() {
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('id')}>ID{sortLabel('id')}</button></th>
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('user')}>Usuario{sortLabel('user')}</button></th>
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('email')}>Email{sortLabel('email')}</button></th>
+              <th>Microsoft</th>
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('role')}>Rol{sortLabel('role')}</button></th>
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('status')}>Estado{sortLabel('status')}</button></th>
               <th><button type="button" className={styles.sortHeaderButton} onClick={() => handleSort('created_at')}>Creado{sortLabel('created_at')}</button></th>
@@ -682,7 +693,7 @@ export default function UserManagementPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className={styles.loading}>
+                <td colSpan="8" className={styles.loading}>
                   <FontAwesomeIcon icon={faSpinner} spin />
                   <span>Cargando usuarios...</span>
                 </td>
@@ -710,6 +721,7 @@ export default function UserManagementPage() {
                       </div>
                     </td>
                     <td className={styles.emailCell}>{user.email}</td>
+                    <td className={styles.emailCell}>{user.microsoft_oid ? 'Vinculada' : 'Sin vincular'}</td>
                     <td>
                       <span
                         className={styles.roleBadge}

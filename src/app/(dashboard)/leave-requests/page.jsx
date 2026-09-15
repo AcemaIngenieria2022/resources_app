@@ -412,7 +412,7 @@ export default function LeaveRequestsPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (reviewRole === 'leader') {
         params.set('role', 'leader');
-        params.set('userId', String(user?.id || ''));
+        params.set('employeeId', String(user?.employeeId || user?.id || ''));
       }
       const url = `/api/admin/leave-requests?${params.toString()}`;
       
@@ -433,7 +433,7 @@ export default function LeaveRequestsPage() {
       const res = await fetch('/api/admin/leave-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'statistics', role: reviewRole, userId: user?.id }),
+        body: JSON.stringify({ action: 'statistics', role: reviewRole, employeeId: user?.employeeId || user?.id, userId: user?.id }),
       });
       const payload = await res.json();
       setStatistics(payload?.data || {});
@@ -486,7 +486,7 @@ export default function LeaveRequestsPage() {
         const res = await fetch('/api/admin/leave-requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'review', id, reviewAction, role: reviewRole, userId: user?.id, userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email, observation: result.value || null }),
+          body: JSON.stringify({ action: 'review', id, reviewAction, role: reviewRole, employeeId: user?.employeeId || user?.id, userId: user?.id, userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email, observation: result.value || null }),
         });
         const payload = await res.json();
         if (payload?.success) {

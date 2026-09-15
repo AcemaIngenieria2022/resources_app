@@ -20,6 +20,10 @@ export async function loginUser({ email, password }) {
     throw new AppError('Usuario inactivo', 403);
   }
 
+  if (['leader', 'approver', 'hr', 'rrhh'].includes(String(user.role || '').toLowerCase())) {
+    throw new AppError('Este perfil debe ingresar con Microsoft 365.', 403);
+  }
+
   const isPasswordValid = passwordUtils.verifyPassword(password, user.password);
 
   if (!isPasswordValid) {

@@ -8,13 +8,13 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const employeeId = searchParams.get('employeeId');
     const role = searchParams.get('role');
-    const userId = searchParams.get('userId');
+    const employeeIdForLeader = searchParams.get('employeeId');
     const limit = searchParams.get('limit') || 100;
 
     let data;
 
     if (role === 'leader') {
-      data = await leaveRequestService.getAllLeaveRequests(Number(limit), Number(userId));
+      data = await leaveRequestService.getAllLeaveRequests(Number(limit), Number(employeeIdForLeader));
       if (status) {
         data = data.filter((request) => request.status === status || request.state_code === String(status).toLowerCase());
       }
@@ -37,13 +37,13 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, id, status, reviewAction, role, userId, userName, observation } = body;
+    const { action, id, status, reviewAction, role, userId, employeeId, userName, observation } = body;
 
     if (action === 'review') {
       if (!id || !['approve', 'reject'].includes(reviewAction) || !['leader', 'hr'].includes(role)) {
         return Response.json(errorResponse('Datos de revisión inválidos', 400), { status: 400 });
       }
-      const result = await leaveRequestService.reviewRequest({ id, action: reviewAction, role, userId, userName, observation });
+      const result = await leaveRequestService.reviewRequest({ id, action: reviewAction, role, userId, employeeId, userName, observation });
       return Response.json(okResponse(result, { message: 'Revisión registrada correctamente' }));
     }
 
@@ -68,7 +68,7 @@ export async function POST(request) {
 
     if (action === 'statistics') {
       const stats = await leaveRequestService.getStatistics({
-        leaderUserId: role === 'leader' ? Number(userId) : null,
+        leaderUserId: role === 'leader' ? Number(employeeId) : null,
       });
       return Response.json(okResponse(stats, { message: 'Estadísticas obtenidas' }));
     }

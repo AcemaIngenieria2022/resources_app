@@ -12,19 +12,33 @@ export const AuthProvider = ({ children }) => {
 
   // Carga el usuario guardado al montar el provider para sincronizar el estado con el almacenamiento local.
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem('authUser');
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        setUser(null);
+    const loadSession = async () => {
+      try {
+        const response = await fetch('/api/auth/microsoft/session', { cache: 'no-store' });
+        const payload = await response.json();
+        if (response.ok && payload?.authenticated) {
+          setUser(payload.user);
+          window.localStorage.setItem('authUser', JSON.stringify(payload.user));
+          setHydrated(true);
+          return;
+        }
+
+        const stored = window.localStorage.getItem('authUser');
+        setUser(stored ? JSON.parse(stored) : null);
+      } catch (error) {
+        console.error('Error loading auth session', error);
+        try {
+          const stored = window.localStorage.getItem('authUser');
+          setUser(stored ? JSON.parse(stored) : null);
+        } catch {
+          setUser(null);
+        }
+      } finally {
+        setHydrated(true);
       }
-    } catch (error) {
-      console.error('Error loading auth user from storage', error);
-      setUser(null);
-    } finally {
-      setHydrated(true);
-    }
+    };
+
+    void loadSession();
   }, []);
 
   // Guarda la sesión actual en memoria y persistencia local para reutilizarla en recargas.
@@ -37,6 +51,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     window.localStorage.removeItem('authUser');
+    void fetch('/api/auth/microsoft/logout', { method: 'POST' }).catch(() => {});
   };
 
   return (

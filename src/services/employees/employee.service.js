@@ -79,6 +79,7 @@ export async function addEmployee(data) {
   const res = await createEmployee({
     employeedID: data.employeedID,
     personName: data.personName,
+    corporate_email: data.corporate_email || null,
     department_id: data.department_id || null,
     company_id: data.company_id || null,
     position_id: data.position_id || null,
@@ -117,6 +118,7 @@ export async function editEmployee(id, data) {
 
   await updateEmployee(id, {
     personName: data.personName || emp.personName,
+    corporate_email: data.corporate_email !== undefined ? data.corporate_email : emp.corporate_email,
     department_id: data.department_id !== undefined ? data.department_id : emp.department_id,
     company_id: data.company_id !== undefined ? data.company_id : emp.company_id,
     position_id: data.position_id !== undefined ? data.position_id : emp.position_id,

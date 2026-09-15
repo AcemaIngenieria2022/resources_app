@@ -55,7 +55,7 @@ async function selectUserColumns(columnList, whereClause, params) {
 async function selectUserByEmail(email) {
   try {
     const rows = await selectUserColumns(
-      'users.id, users.email, users.password, users.role, roles.description AS role_description, users.first_name, users.last_name, COALESCE(us.name, users.status) AS status, users.status_id, users.created_at',
+      'users.id, users.email, users.password, users.role, users.microsoft_oid, roles.description AS role_description, users.first_name, users.last_name, COALESCE(us.name, users.status) AS status, users.status_id, users.created_at',
       'LEFT JOIN user_statuses us ON users.status_id = us.id LEFT JOIN roles ON roles.name = users.role WHERE users.email = ? LIMIT 1',
       [email]
     );
@@ -118,7 +118,7 @@ export async function findUsers({ limit = 100, search = '', role = '' } = {}) {
   try {
     const rows = await query(
       `
-        SELECT users.id, users.email, users.role, users.first_name, users.last_name,
+        SELECT users.id, users.email, users.role, users.microsoft_oid, users.first_name, users.last_name,
           e.id AS employee_id, e.employeedID, e.personName AS employee_name,
           COALESCE(us.name, users.status) AS status, users.status_id, users.created_at
         FROM users
@@ -181,6 +181,10 @@ export async function updateUser(id, fields = {}) {
     sets.push('role = ?');
     params.push(fields.role);
   }
+  if (fields.microsoftOid !== undefined) {
+    sets.push('microsoft_oid = ?');
+    params.push(fields.microsoftOid || null);
+  }
   if (fields.status !== undefined) {
     const statusId = await getStatusIdByName(fields.status);
     sets.push('status = ?');
@@ -233,7 +237,7 @@ export async function findUserById(id) {
   try {
     const rows = await query(
       `
-        SELECT users.id, users.email, users.password, users.role, users.first_name, users.last_name,
+        SELECT users.id, users.email, users.password, users.role, users.microsoft_oid, users.first_name, users.last_name,
           COALESCE(us.name, users.status) AS status, users.status_id, users.active, users.created_at
         FROM users
         LEFT JOIN user_statuses us ON users.status_id = us.id
@@ -300,7 +304,7 @@ export async function updateUserPassword(id, newPassword) {
   return findUserById(id);
 }
 
-export async function createUser({ email, password, role = 'user', firstName = '', lastName = '', status = 'active' }) {
+export async function createUser({ email, password, role = 'user', firstName = '', lastName = '', status = 'active', microsoftOid = null }) {
   if (!email) {
     throw new AppError('El email es obligatorio', 400);
   }
@@ -312,9 +316,9 @@ export async function createUser({ email, password, role = 'user', firstName = '
   const statusId = await getStatusIdByName(status);
 
   try {
-    const columns = ['email', 'password', 'role', 'first_name', 'last_name', 'status'];
-    const placeholders = ['?', '?', '?', '?', '?', '?'];
-    const values = [email, passwordHash, role, firstName, lastName, status];
+    const columns = ['email', 'password', 'role', 'first_name', 'last_name', 'status', 'microsoft_oid'];
+    const placeholders = ['?', '?', '?', '?', '?', '?', '?'];
+    const values = [email, passwordHash, role, firstName, lastName, status, microsoftOid || null];
 
     if (statusId !== null) {
       columns.push('status_id');

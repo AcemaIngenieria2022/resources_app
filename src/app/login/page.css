@@ -255,6 +255,51 @@
   cursor: not-allowed;
 }
 
+.loginDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.loginDivider::before,
+.loginDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.microsoftButton {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.microsoftButton:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.microsoftLogo {
+  color: #2563eb;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .threeBounceLoader {
   display: inline-flex;
   align-items: center;

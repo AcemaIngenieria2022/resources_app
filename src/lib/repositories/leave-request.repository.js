@@ -182,7 +182,7 @@ async function vacationPaymentTypeSelect() {
 }
 
 // Obtiene el listado principal de solicitudes, aplicando la expiración automática antes de consultar los datos.
-export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
+export async function findAllLeaveRequests(limit = 100, leaderEmployeeId = null) {
   await autoRejectExpiredLeaveRequests();
 
   const rejectionObservation = await rejectionObservationSelect();
@@ -231,11 +231,11 @@ export async function findAllLeaveRequests(limit = 100, leaderUserId = null) {
       LEFT JOIN leaders leader ON leader.id = lr.leader_id
       LEFT JOIN employees leader_employee ON leader_employee.id = leader.employee_id
       LEFT JOIN state request_state ON request_state.id = lr.state_id
-      ${leaderUserId ? 'WHERE leader_employee.user_id = ?' : ''}
+      ${leaderEmployeeId ? 'WHERE leader_employee.id = ?' : ''}
       ORDER BY lr.created_at DESC
       LIMIT ?
     `,
-    leaderUserId ? [Number(leaderUserId), Number(limit)] : [Number(limit)]
+    leaderEmployeeId ? [Number(leaderEmployeeId), Number(limit)] : [Number(limit)]
   );
 
   return hydrateLeaveRequestsWithHistory(rows);
@@ -429,7 +429,7 @@ export async function updateLeaveRequestStatus(id, status) {
 }
 
 // Ejecuta la transición real de una solicitud entre estados según el rol y la acción de revisión.
-export async function reviewLeaveRequest({ id, action, role, userId, userName, observation }) {
+export async function reviewLeaveRequest({ id, action, role, userId, employeeId, userName, observation }) {
   const rows = await query(
     `SELECT lr.id, lr.leader_id, s.code AS state_code
      FROM leave_requests lr
@@ -445,9 +445,9 @@ export async function reviewLeaveRequest({ id, action, role, userId, userName, o
       `SELECT 1
        FROM leaders l
        INNER JOIN employees leader_employee ON leader_employee.id = l.employee_id
-       WHERE l.id = ? AND leader_employee.user_id = ?
+      WHERE l.id = ? AND leader_employee.id = ?
        LIMIT 1`,
-      [request.leader_id, Number(userId)]
+      [request.leader_id, Number(employeeId)]
     );
     if (!assignedLeader.length) return { error: 'No tienes permiso para revisar esta novedad', status: 403 };
   }
@@ -594,15 +594,15 @@ export async function countLeaveRequestsByStatus(status) {
 }
 
 // Cuenta las solicitudes asignadas a un líder, con posibilidad de filtrar por estado para paneles diferenciales.
-export async function countLeaveRequestsByLeader(leaderUserId, status = null) {
+export async function countLeaveRequestsByLeader(leaderEmployeeId, status = null) {
   const statusClause = status ? 'AND lr.status = ?' : '';
-  const params = status ? [Number(leaderUserId), status] : [Number(leaderUserId)];
+  const params = status ? [Number(leaderEmployeeId), status] : [Number(leaderEmployeeId)];
   const rows = await query(
     `SELECT COUNT(*) AS total
      FROM leave_requests lr
      INNER JOIN leaders l ON l.id = lr.leader_id
      INNER JOIN employees leader_employee ON leader_employee.id = l.employee_id
-     WHERE leader_employee.user_id = ? ${statusClause}`,
+    WHERE leader_employee.id = ? ${statusClause}`,
     params
   );
   return Number(rows?.[0]?.total ?? 0);
